@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Login | ERP</title>
   <style>
     body {
@@ -22,6 +22,14 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 400px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo img {
+      max-width: 150px;
+      height: auto;
     }
     h2 {
       text-align: center;
@@ -70,9 +78,13 @@
 </head>
 <body>
   <div class="login-container">
+    <div class="logo">
+      <img src="logo3-removebg-preview.png" alt="Logo ERP" />
+    </div>
+
     <h2>Iniciar sesión en el ERP</h2>
-    <form onsubmit="goToDashboard(event)">
-      <input id="username" type="text" placeholder="Nombre de usuario" required />
+    <form onsubmit="login(event)">
+      <input id="nombre" type="text" placeholder="Nombre de usuario" required />
       <input id="password" type="password" placeholder="Contraseña" required />
       <div class="error" id="error-msg"></div>
       <button type="submit">Iniciar sesión</button>
@@ -82,18 +94,58 @@
     </div>
   </div>
 
-  <script>
-    function goToDashboard(e) {
-      e.preventDefault();
-      const user = document.getElementById('username').value.trim().toLowerCase();
-      const pass = document.getElementById('password').value;
-      const allowedUsers = ["josue", "sesar"];
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
 
-      if (allowedUsers.includes(user) && pass === "123456") {
-        localStorage.setItem("usuario", user);
-        window.location.href = "dashboard.html";
-      } else {
-        document.getElementById('error-msg').textContent = "Usuario o contraseña incorrectos.";
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1vKs3CSDUbvU3XaFHzX_hmdq05ga2TUE",
+      authDomain: "erpj-3f6b7.firebaseapp.com",
+      projectId: "erpj-3f6b7",
+      storageBucket: "erpj-3f6b7.appspot.com",
+      messagingSenderId: "277321931724",
+      appId: "1:277321931724:web:52b2aa01f80ac816109b69"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function login(e) {
+      e.preventDefault();
+      const nombre = document.getElementById("nombre").value.trim();
+      const password = document.getElementById("password").value;
+      const errorMsg = document.getElementById("error-msg");
+
+      try {
+        const querySnapshot = await db.collection("usuarios")
+          .where("nombre", "==", nombre)
+          .get();
+
+        if (querySnapshot.empty) {
+          errorMsg.textContent = "Nombre de usuario no registrado.";
+          return;
+        }
+
+        let user = null;
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.password === password) {
+            user = data;
+          }
+        });
+
+        if (user) {
+          localStorage.setItem("usuario", user.nombre);
+          localStorage.setItem("rol", user.rol);
+          window.location.href = "dashboard.html";
+        } else {
+          errorMsg.textContent = "Contraseña incorrecta.";
+        }
+
+      } catch (error) {
+        console.error("Error al iniciar sesión:", error);
+        errorMsg.textContent = "Error al intentar iniciar sesión.";
       }
     }
   </script>

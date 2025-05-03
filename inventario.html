@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+          margin: 0;
+          font-family: Arial, sans-serif;
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+        }
+    
+        .header {
+          background-color: #fff;
+          padding: 20px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          font-size: 18px;
+          font-weight: bold;
+          color: #2c3e50;
+        }
+    
+        .content {
+          display: flex;
+          flex: 1;
+          justify-content: space-between;
+          padding: 30px;
+          gap: 30px;
+        }
+    
+        .sidebar {
+          width: 220px;
+          background-color: #2c3e50;
+          color: white;
+          height: 100%;
+          padding: 20px;
+        }
+    
+        .sidebar h2 {
+          font-size: 20px;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+    
+        .sidebar ul {
+          list-style: none;
+          padding: 0;
+        }
+    
+        .sidebar ul li {
+          margin: 15px 0;
+        }
+    
+        .sidebar ul li a {
+          color: white;
+          text-decoration: none;
+          display: block;
+          padding: 8px;
+          border-radius: 4px;
+        }
+    
+        .sidebar ul li a:hover {
+          background-color: #34495e;
+        }
+    
+        .main {
+          flex: 1;
+          background-color: #ecf0f1;
+        }
+    
+        .main h1 {
+          font-size: 24px;
+          margin-bottom: 20px;
+        }
+    
+        .card {
+          background-color: white;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom: 30px;
+        }
+    
+        .logout {
+          float: right;
+          font-size: 14px;
+          text-decoration: none;
+          color: #007bff;
+        }
+    
+        .logout:hover {
+          text-decoration: underline;
+        }
+    
+        /* Estilo para la gráfica */
+        .chart-container {
+          position: relative;
+          height: 400px;
+          width: 100%;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+    
+        /* Estilo para tablas */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+    
+        table, th, td {
+          border: 1px solid #ddd;
+        }
+    
+        th, td {
+          padding: 12px;
+          text-align: left;
+        }
+    
+        th {
+          background-color: #f4f4f4;
+          color: #333;
+        }
+    
+        td {
+          background-color: #fff;
+        }
+    
+        /* Estilo para la lista de productos */
+        .products-list {
+          margin-top: 30px;
+        }
+    
+        .products-list ul {
+          list-style: none;
+          padding: 0;
+        }
+    
+        .products-list ul li {
+          background-color: #e74c3c;
+          color: white;
+          padding: 10px;
+          margin: 5px 0;
+          border-radius: 8px;
+        }
+      </style>
+</head>
+<body>
+    <div class="header">
+      <span id="usuario-logueado">Bienvenido, </span>
+      <a class="logout" href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+    </div>
+  
+    <div class="content">
+      <div class="sidebar">
+        <h2>Mi ERP</h2>
+        <ul>
+          <li><a href="dashboard.html">Inicio</a></li>
+          <li><a href="ventas.html">Ventas</a></li>
+          <li><a href="Compras.html">Compras</a></li>
+          <li><a href="inventario.html">Inventario</a></li>
+          <li><a href="#">Reportes</a></li>
+          <li><a href="#">Usuarios</a></li>
+        </ul>
+      </div>
+  
+      <div class="main">
+        <h1>Página de Inventario</h1>
+  
+        <!-- Listado de productos con cantidades, precios y fechas de modificación -->
+        <div class="card">
+          <h2>Listado de Productos</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Unidades en Existencia</th>
+                <th>Precio (Q)</th>
+                <th>Última modificación</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td> Mosue</td>
+                <td>50</td>
+                <td>Q 10.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Baterias</td>
+                <td>30</td>
+                <td>Q 15.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+            </tr>
+              <tr>
+                <td> Cargador</td>
+                <td>100</td>
+                <td>Q 5.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Control</td>
+                <td>70</td>
+                <td>Q 20.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Teclado</td>
+                <td>80</td>
+                <td>Q 25.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> USB 16GB</td>
+                <td>120</td>
+                <td>Q 18.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> USB 32GB</td>
+                <td>100</td>
+                <td>Q 30.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Audífonos</td>
+                <td>90</td>
+                <td>Q 22.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Bocina Bluetooth</td>
+                <td>60</td>
+                <td>Q 45.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Cable HDMI</td>
+                <td>150</td>
+                <td>Q 12.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Cable USB-C</td>
+                <td>200</td>
+                <td>Q 8.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Adaptador USB</td>
+                <td>110</td>
+                <td>Q 10.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Memoria SD 32GB</td>
+                <td>85</td>
+                <td>Q 35.00</td>
+                <td>01/01/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Lámpara LED</td>
+                <td>70</td>
+                <td>Q 28.00</td>
+                <td>01/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Base para Laptop</td>
+                <td>40</td>
+                <td>Q 55.00</td>
+                <td>01/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Soporte Celular</td>
+                <td>130</td>
+                <td>Q 15.00</td>
+                <td>01/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Mouse Pad</td>
+                <td>140</td>
+                <td>Q 10.00</td>
+                <td>01/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Funda para Laptop</td>
+                <td>50</td>
+                <td>Q 40.00</td>
+                <td>01/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Webcam</td>
+                <td>35</td>
+                <td>Q 60.00</td>
+                <td>01/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Enfriador USB</td>
+                <td>55</td>
+                <td>Q 33.00</td>
+                <td>27/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Tripié</td>
+                <td>45</td>
+                <td>Q 25.00</td>
+                <td>27/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Caja Organizadora</td>
+                <td>90</td>
+                <td>Q 18.00</td>
+                <td>27/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Limpiador de Pantalla</td>
+                <td>75</td>
+                <td>Q 12.00</td>
+                <td>27/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+              <tr>
+                <td> Extensión Eléctrica</td>
+                <td>65</td>
+                <td>Q 35.00</td>
+                <td>27/02/2025</td>
+                <td>
+                    <a href="#" class="edit-btn" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="delete-btn" title="Eliminar"><i class="fas fa-trash-alt"></i></a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+          <div class="card">
+            <h2>Productos con mayor stock</h2>
+            <div class="chart-container">
+              <canvas id="UpperstockChart" height="100"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Productos con menor stock</h2>
+            <div class="chart-container">
+              <canvas id="LowerstockChart" height="100"></canvas>
+            </div>
+          </div>
+          <div class="card">
+              <h2>Productos más caros</h2>
+              <div class="chart-container">
+                <canvas id="UpperCostChart" height="100"></canvas>
+              </div>
+            </div>
+      </div>
+    </div>
+  
+    <script>
+      // Obtén el usuario desde el localStorage y actualiza el mensaje de bienvenida
+      const usuario = localStorage.getItem("usuario");
+      if (!usuario) {
+        window.location.href = "index.html"; // redirige si no hay usuario
+      } else {
+        const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
+        document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
+      }
+  
+      // Función para cerrar sesión
+      function cerrarSesion() {
+        localStorage.removeItem("usuario");
+        window.location.href = "index.html";
+      }
+
+ // Creación de gráfico de productos con mayor stock
+    const productos = ["Cable USB-C", "Mouse Pad", "Soporte Celular", "USB 16GB", "Cable HDMI"];
+    const cantidades = [200, 140, 130, 120, 150];
+
+    const ctx1 = document.getElementById('UpperstockChart').getContext('2d');
+
+    new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: productos,
+        datasets: [{
+          label: 'Stock disponible',
+          data: cantidades,
+          backgroundColor: 'rgba(34, 139, 34, 0.6)',
+          borderColor: 'rgba(34, 139, 34, 1)', 
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Productos con mayor stock'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+ // Creación de gráfico de productos con menor stock
+    const productos2 = ["Control", "Webcam", "Enfriador USB", "Funda para Laptop", "Lámpara LED"];
+    const cantidades2 = [70, 35, 55, 50, 40];
+
+    const ctx2 = document.getElementById('LowerstockChart').getContext('2d');
+
+    new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: productos2,
+        datasets: [{
+          label: 'Stock disponible',
+          data: cantidades2,
+          backgroundColor: 'rgba(255, 0, 0, 0.6)',
+          borderColor: 'rgba(255, 0, 0, 1)', 
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Productos con menor stock'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    // Creación de gráfico de productos más costosos
+    const productos3 = ["Webcam", "Base para Laptop", "Bocina Bluetooth", "Enfriador USB", "Memoria SD 32GB"];
+    const cantidades3 = [60, 55, 45, 33, 35];
+
+    const ctx3 = document.getElementById('UpperCostChart').getContext('2d');
+
+    new Chart(ctx3, {
+      type: 'bar',
+      data: {
+        labels: productos3,
+        datasets: [{
+          label: 'Precio',
+          data: cantidades3,
+          backgroundColor: 'rgba(255, 165, 0, 0.6)',
+          borderColor: 'rgba(255, 165, 0, 1)', 
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Productos con menor stock'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+    </script>
+  </body>
+</html>

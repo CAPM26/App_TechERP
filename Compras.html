@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proceso de Ventas - ERP</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-size: 18px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .content {
+      display: flex;
+      flex: 1;
+      padding: 30px;
+      gap: 30px;
+    }
+
+    .sidebar {
+      width: 220px;
+      background-color: #2c3e50;
+      color: white;
+      height: 100%;
+      padding: 20px;
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      margin: 15px 0;
+    }
+
+    .sidebar ul li a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .sidebar ul li a:hover {
+      background-color: #34495e;
+    }
+
+    .main {
+      flex: 1;
+      background-color: #ecf0f1;
+    }
+
+    .main h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .logout {
+      float: right;
+      font-size: 14px;
+      text-decoration: none;
+      color: #007bff;
+    }
+
+    .logout:hover {
+      text-decoration: underline;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+      color: #333;
+    }
+
+    td {
+      background-color: #fff;
+    }
+
+    .form-control {
+      margin: 10px 0;
+      padding: 8px;
+      font-size: 16px;
+      width: 100%;
+    }
+
+    .btn {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+
+    .btn:hover {
+      background-color: #218838;
+    }
+
+    .total {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    .cart-summary {
+      margin-top: 20px;
+    }
+
+    .cart-summary table {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .cart-summary th, .cart-summary td {
+      padding: 8px;
+      text-align: center;
+    }
+
+   
+
+   
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span id="usuario-logueado">Bienvenido, </span>
+    <a class="logout" href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+  </div>
+
+  <div class="content">
+    <div class="sidebar">
+      <h2>Mi ERP</h2>
+      <ul>
+        <li><a href="dashboard.html">Inicio</a></li>
+        <li><a href="compras.html">Compras</a></li>
+        <li><a href="ventas.html">Ventas</a></li>
+        <li><a href="inventario.html">Inventario</a></li>
+        <li><a href="#">Reportes</a></li>
+        <li><a href="#">Usuarios</a></li>
+      </ul>
+    </div>
+
+    <div class="main">
+      <h1>Proceso de Ventas</h1>
+
+      <!-- Formulario de selección de productos -->
+      <div class="card">
+        <h2>Seleccione Productos</h2>
+        <label for="producto">Producto:</label>
+        <select id="producto" class="form-control">
+          <option value="productoA" data-price="10" data-stock="50">Producto Mose - Q 10.00</option>
+          <option value="productoB" data-price="15" data-stock="30">Producto Bateria - Q 15.00</option>
+          <option value="productoC" data-price="5" data-stock="100">Producto Cargador - Q 5.00</option>
+          <option value="productoD" data-price="20" data-stock="70">Producto Tecaldo - Q 20.00</option>
+        </select>
+        <label for="cantidad">Cantidad:</label>
+        <input type="number" id="cantidad" class="form-control" min="1" value="1" />
+
+        <button class="btn" onclick="agregarAlCarrito()">Agregar al carrito</button>
+      </div>
+
+      <!-- Carrito de compras -->
+      <div class="card cart-summary">
+        <h2>Carrito de Compras</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>Total</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="cart-table-body">
+            <!-- Productos agregados aparecerán aquí -->
+          </tbody>
+        </table>
+        <p class="total" id="total-venta">Total: Q 0.00</p>
+      </div>
+
+      <!-- Aplicar descuento -->
+      <div class="card">
+        <h2>Aplicar Descuento</h2>
+        <input type="number" id="descuento" class="form-control" placeholder="Descuento (%)" />
+        <button class="btn" onclick="aplicarDescuento()">Aplicar Descuento</button>
+        <p id="descuento-info"></p>
+      </div>
+
+      <!-- Finalizar compra -->
+      <div class="card">
+        <button class="btn" onclick="finalizarCompra()">Finalizar Compra</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Función para agregar al carrito
+    let carrito = [];
+
+    function agregarAlCarrito() {
+      const productoSelect = document.getElementById("producto");
+      const cantidadInput = document.getElementById("cantidad");
+
+      const producto = productoSelect.options[productoSelect.selectedIndex];
+      const productoNombre = producto.text;
+      const productoPrecio = parseFloat(producto.dataset.price);
+      const cantidad = parseInt(cantidadInput.value);
+      const totalProducto = productoPrecio * cantidad;
+
+      const item = {
+        nombre: productoNombre,
+        cantidad: cantidad,
+        precioUnitario: productoPrecio,
+        total: totalProducto
+      };
+
+      carrito.push(item);
+      actualizarCarrito();
+    }
+
+    function actualizarCarrito() {
+      const tableBody = document.getElementById("cart-table-body");
+      tableBody.innerHTML = "";
+
+      let totalVenta = 0;
+
+      carrito.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.nombre}</td>
+          <td>${item.cantidad}</td>
+          <td>Q ${item.precioUnitario.toFixed(2)}</td>
+          <td>Q ${item.total.toFixed(2)}</td>
+          <td><button class="btn" onclick="eliminarDelCarrito('${item.nombre}')">Eliminar</button></td>
+        `;
+        tableBody.appendChild(row);
+
+        totalVenta += item.total;
+      });
+
+      document.getElementById("total-venta").textContent = `Total: Q ${totalVenta.toFixed(2)}`;
+    }
+
+    function eliminarDelCarrito(nombre) {
+      carrito = carrito.filter(item => item.nombre !== nombre);
+      actualizarCarrito();
+    }
+
+    function aplicarDescuento() {
+      const descuentoInput = document.getElementById("descuento");
+      const descuento = parseFloat(descuentoInput.value);
+      const totalVenta = parseFloat(document.getElementById("total-venta").textContent.replace('Total: Q ', '').trim());
+
+      if (isNaN(descuento) || descuento < 0 || descuento > 100) {
+        document.getElementById("descuento-info").textContent = "Descuento inválido";
+      } else {
+        const descuentoAplicado = (totalVenta * descuento) / 100;
+        const totalConDescuento = totalVenta - descuentoAplicado;
+
+        document.getElementById("total-venta").textContent = `Total con descuento: Q ${totalConDescuento.toFixed(2)}`;
+        document.getElementById("descuento-info").textContent = `Descuento aplicado: Q ${descuentoAplicado.toFixed(2)}`;
+      }
+    }
+
+    function finalizarCompra() {
+  const totalVenta = parseFloat(document.getElementById("total-venta").textContent.replace('Total: Q ', '').trim());
+  const params = new URLSearchParams();
+  params.append("total", totalVenta.toFixed(2));
+
+  // Tamaño de la ventana
+  const width = 600;
+  const height = 800;
+
+  // Centramos en pantalla
+  const left = (window.screen.width / 2) - (width / 2);
+  const top = (window.screen.height / 2) - (height / 2);
+
+  // Abrimos la ventana centrada
+  window.open(
+    'emergente.html?' + params.toString(),
+    'VentanaEmergente',
+    `width=${width},height=${height},left=${left},top=${top},resizable=no`
+  );
+}
+
+  </script>
+</body>
+</html>

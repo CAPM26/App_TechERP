@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard ERP</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-size: 18px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .content {
+      display: flex;
+      flex: 1;
+      justify-content: space-between;
+      padding: 30px;
+      gap: 30px;
+    }
+
+    .sidebar {
+      width: 220px;
+      background-color: #2c3e50;
+      color: white;
+      height: 100%;
+      padding: 20px;
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      margin: 15px 0;
+    }
+
+    .sidebar ul li a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    .sidebar ul li a:hover {
+      background-color: #34495e;
+    }
+
+    .main {
+      flex: 1;
+      background-color: #ecf0f1;
+    }
+
+    .main h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .logout {
+      float: right;
+      font-size: 14px;
+      text-decoration: none;
+      color: #007bff;
+    }
+
+    .logout:hover {
+      text-decoration: underline;
+    }
+
+    /* Estilo para la gráfica */
+    .chart-container {
+      position: relative;
+      height: 400px;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Estilo para tablas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+      color: #333;
+    }
+
+    td {
+      background-color: #fff;
+    }
+
+    /* Estilo para la lista de productos */
+    .products-list {
+      margin-top: 30px;
+    }
+
+    .products-list ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .products-list ul li {
+      background-color: #e74c3c;
+      color: white;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span id="usuario-logueado">Bienvenido, </span>
+    <a class="logout" href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+  </div>
+
+  <div class="content">
+    <div class="sidebar">
+      <h2>Mi ERP</h2>
+      <ul>
+        <li><a href="dashboard.html">Inicio</a></li>
+        <li><a href="ventas.html">Ventas</a></li>
+        <li><a href="Compras.html">Compras</a></li>
+        <li><a href="inventario.html">Inventario</a></li>
+        <li><a href="#">Reportes</a></li>
+        <li><a href="#">Usuarios</a></li>
+      </ul>
+    </div>
+
+    <div class="main">
+      <h1>Pantalla principal</h1>
+
+      <!-- Tarjeta con la gráfica -->
+      <div class="card">
+        <h2>Gráfica de Ventas</h2>
+        <div class="chart-container">
+          <canvas id="ventasChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabla de trabajadores -->
+      <div class="card">
+        <h2>Trabajadores</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Cargo</th>
+              <th>Departamento</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Juan Pérez</td>
+              <td>Gerente</td>
+              <td>Ventas</td>
+            </tr>
+            <tr>
+              <td>Ana Gómez</td>
+              <td>Vendedora</td>
+              <td>Ventas</td>
+            </tr>
+            <tr>
+              <td>Carlos Martínez</td>
+              <td>Contador</td>
+              <td>Finanzas</td>
+            </tr>
+            <tr>
+              <td>Lucía López</td>
+              <td>Administrador</td>
+              <td>Administración</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Lista de productos con pocas existencias -->
+      <div class="card products-list">
+        <h2>Productos con Pocas Existencias</h2>
+        <ul>
+          <li>Producto A - 2 unidades</li>
+          <li>Producto B - 3 unidades</li>
+          <li>Producto C - 1 unidad</li>
+          <li>Producto D - 5 unidades</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Obtén el usuario desde el localStorage y actualiza el mensaje de bienvenida
+    const usuario = localStorage.getItem("usuario");
+    if (!usuario) {
+      window.location.href = "index.html"; // redirige si no hay usuario
+    } else {
+      const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
+      document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
+    }
+
+    // Función para cerrar sesión
+    function cerrarSesion() {
+      localStorage.removeItem("usuario");
+      window.location.href = "index.html";
+    }
+
+    // Datos ficticios para las ventas pasadas y actuales
+    const dataVentas = {
+      labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'], // Meses
+      datasets: [
+        {
+          label: 'Ventas Pasadas',
+          borderColor: '#FF5733',
+          backgroundColor: 'rgba(255, 87, 51, 0.2)',
+          data: [1000, 1500, 1300, 1700, 1600, 1800],
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Ventas Actuales',
+          borderColor: '#28A745',
+          backgroundColor: 'rgba(40, 167, 69, 0.2)',
+          data: [900, 1600, 1400, 1800, 1750, 2000],
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    };
+
+    // Configuración del gráfico
+    const config = {
+      type: 'line',
+      data: dataVentas,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Meses'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Ventas ($)'
+            }
+          }
+        }
+      }
+    };
+
+    // Crea el gráfico de ventas
+    const ventasChart = new Chart(
+      document.getElementById('ventasChart'),
+      config
+    );
+  </script>
+</body>
+</html>

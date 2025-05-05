@@ -194,18 +194,53 @@
       collection,
       doc
     } from './firebase.js';
-
-    const usuario = localStorage.getItem("usuario") || "Administrador";
-    document.getElementById("usuario-logueado").textContent = `Bienvenido, ${usuario}`;
-
-    window.cerrarSesion = function () {
-      localStorage.clear();
-      window.location.href = "index.html";
-    }
-
+  
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+  
+    const authInstance = getAuth();
+  
     const mensaje = document.getElementById("mensaje");
     const tbody = document.getElementById("tablaUsuarios").getElementsByTagName("tbody")[0];
-
+    const usuarioLogueadoSpan = document.getElementById("usuario-logueado");
+  
+    // Detectar login
+    onAuthStateChanged(authInstance, async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+  
+      const uid = user.uid;
+      const docRef = doc(db, "usuarios", uid);
+      const docSnap = await getDocs(collection(db, "usuarios"));
+      let userData = null;
+  
+      docSnap.forEach((d) => {
+        if (d.id === uid) userData = d.data();
+      });
+  
+      const nombre = userData?.nombre || "Usuario";
+      const rol = userData?.rol || "Desconocido";
+  
+      usuarioLogueadoSpan.textContent = `Bienvenido, ${nombre}`;
+  
+      // Ocultar menú si no es administrador
+      if (rol !== "Administrador") {
+        const usuariosLink = document.querySelector('a[href="usuarios.html"]');
+        if (usuariosLink) usuariosLink.style.display = "none";
+        alert("⚠️ No tienes permisos para ver esta sección.");
+        window.location.href = "dashboard.html";
+      }
+  
+      // Si sí es admin, carga usuarios
+      obtenerUsuarios();
+    });
+  
+    window.cerrarSesion = function () {
+      localStorage.clear();
+      auth.signOut().then(() => window.location.href = "index.html");
+    }
+  
     async function obtenerUsuarios() {
       const snapshot = await getDocs(collection(db, "usuarios"));
       tbody.innerHTML = '';
@@ -221,7 +256,7 @@
         `;
       });
     }
-
+  
     document.getElementById("btnRegistrar").addEventListener("click", async () => {
       const nombre = document.getElementById("nombre").value.trim();
       const correo = document.getElementById("email").value.trim();
@@ -229,41 +264,40 @@
       const password = document.getElementById("password").value;
       const rol = document.getElementById("rol").value;
       const estado = document.getElementById("estado").value;
-
+  
       if (!nombre || !correo || !telefono || !password || !rol || !estado) {
         mensaje.textContent = "⚠️ Todos los campos son obligatorios.";
         mensaje.style.color = "red";
         return;
       }
-
+  
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, correo, password);
         const uid = userCredential.user.uid;
-
+  
         await setDoc(doc(db, "usuarios", uid), {
           nombre, correo, telefono, rol, estado
         });
-
+  
         mensaje.textContent = "✅ Usuario creado correctamente.";
         mensaje.style.color = "green";
-
+  
         obtenerUsuarios();
-
+  
         document.getElementById("nombre").value = "";
         document.getElementById("email").value = "";
         document.getElementById("telefono").value = "";
         document.getElementById("password").value = "";
         document.getElementById("rol").value = "";
         document.getElementById("estado").value = "";
-
+  
       } catch (error) {
         console.error("Error al registrar:", error);
         mensaje.textContent = "❌ Error al registrar usuario.";
         mensaje.style.color = "red";
       }
     });
-
-    obtenerUsuarios();
   </script>
+  
 </body>
 </html>

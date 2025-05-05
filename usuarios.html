@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Usuarios y Roles - ERP</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 30px;
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .left-text { font-size: 16px; }
+    .logo { height: 80px; }
+    .logout {
+      text-decoration: none;
+      color: #007bff;
+      font-size: 16px;
+    }
+    .logout:hover { text-decoration: underline; }
+    .content {
+      display: flex;
+      flex: 1;
+      padding: 30px;
+      gap: 30px;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: #2c3e50;
+      color: white;
+      height: 100%;
+      padding: 20px;
+    }
+    .sidebar h2 { font-size: 20px; margin-bottom: 20px; text-align: center; }
+    .sidebar ul { list-style: none; padding: 0; }
+    .sidebar ul li { margin: 15px 0; }
+    .sidebar ul li a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .sidebar ul li a:hover { background-color: #34495e; }
+    .main {
+      flex: 1;
+      background-color: #ecf0f1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .main h1, .main h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover { background-color: #0056b3; }
+    p#mensaje {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    table th, table td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    table th {
+      background-color: #007bff;
+      color: white;
+    }
+    table tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    .icon {
+      cursor: pointer;
+      margin-right: 8px;
+      color: #007bff;
+    }
+    .icon:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-column">
+      <span class="left-text" id="usuario-logueado">Bienvenido</span>
+    </div>
+    <div class="header-column center-column">
+      <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
+    </div>
+    <div class="header-column right-column">
+      <a href="#" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="sidebar">
+      <h2>Mi ERP</h2>
+      <ul>
+        <li><a href="dashboard.html">Inicio</a></li>
+        <li><a href="ventas.html">Ventas</a></li>
+        <li><a href="compras.html">Compras</a></li>
+        <li><a href="inventario.html">Inventario</a></li>
+        <li><a href="reportes.html">Reportes</a></li>
+        <li><a href="usuarios.html">Usuarios y Roles</a></li>
+      </ul>
+    </div>
+
+    <div class="main">
+      <h1>Gestión de Usuarios y Roles</h1>
+      <div class="card">
+        <h2>Crear Usuario</h2>
+        <input type="text" id="nombreUsuario" placeholder="Nombre del usuario" required><br>
+        <input type="email" id="emailUsuario" placeholder="Correo electrónico" required><br>
+        <input type="password" id="passwordUsuario" placeholder="Contraseña" required><br>
+        <select id="rolUsuario" required>
+          <option value="">Selecciona el rol</option>
+          <option value="Administrador">Administrador</option>
+          <option value="Vendedor">Vendedor</option>
+        </select><br>
+        <button id="btnCrearUsuario">Crear Usuario</button>
+        <p id="mensaje"></p>
+      </div>
+
+      <h2>Lista de Usuarios</h2>
+      <table id="tablaUsuarios">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Contraseña</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from './firebase.js';
+    import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    document.getElementById("usuario-logueado").textContent = `Bienvenido`;
+
+    window.cerrarSesion = function() {
+      window.location.href = "index.html";
+    }
+
+    let usuarios = [];
+    async function obtenerUsuarios() {
+      const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
+      usuarios = usuariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      mostrarUsuariosEnTabla(usuarios);
+    }
+
+    function mostrarUsuariosEnTabla(usuarios) {
+      const tabla = document.getElementById("tablaUsuarios").getElementsByTagName("tbody")[0];
+      tabla.innerHTML = '';
+      usuarios.forEach(usuario => {
+        const fila = tabla.insertRow();
+        fila.innerHTML = `
+          <td>${usuario.nombre}</td>
+          <td>${usuario.correo}</td>
+          <td>${usuario.password ?? '---'}</td>
+          <td>${usuario.rol}</td>
+          <td>
+            <span class="icon" onclick="editarUsuario('${usuario.id}', '${usuario.nombre}', '${usuario.correo}', '${usuario.password}', '${usuario.rol}')">✏️</span>
+            <span class="icon" onclick="eliminarUsuario('${usuario.id}')">🗑️</span>
+          </td>
+        `;
+      });
+    }
+
+    document.getElementById("btnCrearUsuario").addEventListener("click", async () => {
+      const nombre = document.getElementById("nombreUsuario").value;
+      const correo = document.getElementById("emailUsuario").value;
+      const password = document.getElementById("passwordUsuario").value;
+      const rol = document.getElementById("rolUsuario").value;
+
+      if (!nombre || !correo || !password || !rol) {
+        document.getElementById("mensaje").textContent = "⚠️ Todos los campos son obligatorios.";
+        return;
+      }
+
+      try {
+        await addDoc(collection(db, "usuarios"), {
+          nombre, correo, password, rol
+        });
+        document.getElementById("mensaje").textContent = "✅ Usuario creado correctamente.";
+        obtenerUsuarios();
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("mensaje").textContent = "❌ Error al crear el usuario.";
+      }
+    });
+
+    window.editarUsuario = async function(id, nombre, correo, password, rol) {
+      const nuevoNombre = prompt("Nuevo nombre:", nombre);
+      const nuevoCorreo = prompt("Nuevo correo:", correo);
+      const nuevoPassword = prompt("Nueva contraseña:", password);
+      const nuevoRol = prompt("Nuevo rol:", rol);
+
+      if (nuevoNombre && nuevoCorreo && nuevoPassword && nuevoRol) {
+        const ref = doc(db, "usuarios", id);
+        try {
+          await updateDoc(ref, {
+            nombre: nuevoNombre,
+            correo: nuevoCorreo,
+            password: nuevoPassword,
+            rol: nuevoRol
+          });
+          obtenerUsuarios();
+        } catch (err) {
+          console.error("Error al actualizar:", err);
+        }
+      }
+    }
+
+    window.eliminarUsuario = function(id) {
+      if (confirm("¿Estás seguro que deseas eliminar este usuario?")) {
+        deleteDoc(doc(db, "usuarios", id))
+          .then(() => obtenerUsuarios())
+          .catch(error => console.error("Error al eliminar:", error));
+      }
+    }
+
+    obtenerUsuarios();
+  </script>
+</body>
+</html>

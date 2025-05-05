@@ -5,43 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard ERP</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="firebase.js"></script>
   <style>
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
     }
 
     .header {
-      background-color: #fff;
-      padding: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      font-size: 18px;
+      background-color: #333;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+    }
+
+    .header-column {
+      flex: 1;
+    }
+
+    .center-column {
+      text-align: center;
+    }
+
+    .right-column {
+      text-align: right;
+    }
+
+    .logo {
+      height: 50px;
+    }
+
+    .logout {
+      color: white;
+      text-decoration: none;
       font-weight: bold;
-      color: #2c3e50;
+    }
+
+    .logout:hover {
+      text-decoration: underline;
     }
 
     .content {
       display: flex;
-      flex: 1;
-      justify-content: space-between;
-      padding: 30px;
-      gap: 30px;
     }
 
     .sidebar {
-      width: 220px;
-      background-color: #2c3e50;
+      width: 200px;
+      background-color: #222;
       color: white;
-      height: 100%;
       padding: 20px;
+      height: 100vh;
     }
 
     .sidebar h2 {
-      font-size: 20px;
-      margin-bottom: 20px;
       text-align: center;
     }
 
@@ -57,101 +77,71 @@
     .sidebar ul li a {
       color: white;
       text-decoration: none;
-      display: block;
-      padding: 8px;
-      border-radius: 4px;
+      font-weight: bold;
     }
 
     .sidebar ul li a:hover {
-      background-color: #34495e;
+      text-decoration: underline;
     }
 
     .main {
       flex: 1;
-      background-color: #ecf0f1;
-    }
-
-    .main h1 {
-      font-size: 24px;
-      margin-bottom: 20px;
+      padding: 20px;
     }
 
     .card {
       background-color: white;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
     }
 
-    .logout {
-      float: right;
-      font-size: 14px;
-      text-decoration: none;
-      color: #007bff;
-    }
-
-    .logout:hover {
-      text-decoration: underline;
-    }
-
-    /* Estilo para la gráfica */
     .chart-container {
-      position: relative;
-      height: 400px;
       width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
+      height: 400px;
     }
 
-    /* Estilo para tablas */
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
-    }
-
-    table, th, td {
-      border: 1px solid #ddd;
     }
 
     th, td {
       padding: 12px;
+      border: 1px solid #ddd;
       text-align: left;
     }
 
     th {
-      background-color: #f4f4f4;
-      color: #333;
-    }
-
-    td {
-      background-color: #fff;
-    }
-
-    /* Estilo para la lista de productos */
-    .products-list {
-      margin-top: 30px;
+      background-color: #f0f0f0;
     }
 
     .products-list ul {
-      list-style: none;
-      padding: 0;
+      padding-left: 20px;
     }
 
-    .products-list ul li {
-      background-color: #e74c3c;
-      color: white;
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 8px;
+    .products-list li {
+      margin-bottom: 8px;
+    }
+
+    #usuario-logueado {
+      font-weight: bold;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <span id="usuario-logueado">Bienvenido, </span>
-    <a class="logout" href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+    <div class="header-column">
+      <span id="usuario-logueado">Bienvenido</span>
+    </div>
+    <div class="header-column center-column">
+      <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
+    </div>
+    <div class="header-column right-column">
+      <a href="#" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
+    </div>
   </div>
 
   <div class="content">
@@ -159,18 +149,17 @@
       <h2>Mi ERP</h2>
       <ul>
         <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="ventas.html">Ventas</a></li>
-        <li><a href="Compras.html">Compras</a></li>
+        <li><a href="compras.html">Ventas</a></li>
+        <li><a href="ventas.html">Compras</a></li>
         <li><a href="inventario.html">Inventario</a></li>
-        <li><a href="#">Reportes</a></li>
-        <li><a href="#">Usuarios</a></li>
+        <li><a href="reportes.html">Reportes</a></li>
+        <li><a href="usuarios.html">Usuarios</a></li>
       </ul>
     </div>
 
     <div class="main">
       <h1>Pantalla principal</h1>
 
-      <!-- Tarjeta con la gráfica -->
       <div class="card">
         <h2>Gráfica de Ventas</h2>
         <div class="chart-container">
@@ -178,132 +167,131 @@
         </div>
       </div>
 
-      <!-- Tabla de trabajadores -->
       <div class="card">
         <h2>Trabajadores</h2>
         <table>
           <thead>
             <tr>
               <th>Nombre</th>
-              <th>Cargo</th>
-              <th>Departamento</th>
+              <th>Correo</th>
+              <th>Rol</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>Juan Pérez</td>
-              <td>Gerente</td>
-              <td>Ventas</td>
-            </tr>
-            <tr>
-              <td>Ana Gómez</td>
-              <td>Vendedora</td>
-              <td>Ventas</td>
-            </tr>
-            <tr>
-              <td>Carlos Martínez</td>
-              <td>Contador</td>
-              <td>Finanzas</td>
-            </tr>
-            <tr>
-              <td>Lucía López</td>
-              <td>Administrador</td>
-              <td>Administración</td>
-            </tr>
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
 
-      <!-- Lista de productos con pocas existencias -->
       <div class="card products-list">
         <h2>Productos con Pocas Existencias</h2>
-        <ul>
-          <li>Producto A - 2 unidades</li>
-          <li>Producto B - 3 unidades</li>
-          <li>Producto C - 1 unidad</li>
-          <li>Producto D - 5 unidades</li>
-        </ul>
+        <ul></ul>
       </div>
-
     </div>
   </div>
 
-  <script>
-    // Obtén el usuario desde el localStorage y actualiza el mensaje de bienvenida
-    const usuario = localStorage.getItem("usuario");
-    if (!usuario) {
-      window.location.href = "index.html"; // redirige si no hay usuario
-    } else {
-      const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
-      document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
-    }
-
-    // Función para cerrar sesión
-    function cerrarSesion() {
+  <script type="module">
+    import { db } from './firebase.js';
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    import { verificarSesion, ocultarLinksPorRol } from './auth.js';
+  
+    verificarSesion();
+    ocultarLinksPorRol(); // Este se ejecuta automáticamente al terminar de cargar la página
+  
+    const usuario = localStorage.getItem("usuario") || "Josue";
+    const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
+    document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
+  
+    window.cerrarSesion = function () {
       localStorage.removeItem("usuario");
+      localStorage.removeItem("rol");
       window.location.href = "index.html";
     }
-
-    // Datos ficticios para las ventas pasadas y actuales
-    const dataVentas = {
-      labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'], // Meses
-      datasets: [
-        {
-          label: 'Ventas Pasadas',
-          borderColor: '#FF5733',
-          backgroundColor: 'rgba(255, 87, 51, 0.2)',
-          data: [1000, 1500, 1300, 1700, 1600, 1800],
-          fill: true,
-          tension: 0.4
-        },
-        {
-          label: 'Ventas Actuales',
-          borderColor: '#28A745',
-          backgroundColor: 'rgba(40, 167, 69, 0.2)',
-          data: [900, 1600, 1400, 1800, 1750, 2000],
-          fill: true,
-          tension: 0.4
+  
+    // Gráfica de Ventas
+    const ventasCollection = collection(db, "ventas");
+    getDocs(ventasCollection).then((querySnapshot) => {
+      const ventasPorMes = {};
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const fecha = data.fecha.toDate();
+        const mes = fecha.toLocaleString('default', { month: 'short', year: 'numeric' });
+        const totalVenta = parseFloat(data.total) || 0;
+  
+        if (!ventasPorMes[mes]) {
+          ventasPorMes[mes] = 0;
         }
-      ]
-    };
-
-    // Configuración del gráfico
-    const config = {
-      type: 'line',
-      data: dataVentas,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-          }
+        ventasPorMes[mes] += totalVenta;
+      });
+  
+      const meses = Object.keys(ventasPorMes);
+      const totales = Object.values(ventasPorMes);
+  
+      new Chart(document.getElementById('ventasChart'), {
+        type: 'bar',
+        data: {
+          labels: meses,
+          datasets: [{
+            label: 'Total de Ventas',
+            data: totales,
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
         },
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Meses'
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return `Q ${context.raw.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
+                }
+              }
             }
           },
-          y: {
-            title: {
-              display: true,
-              text: 'Ventas ($)'
+          scales: {
+            x: { title: { display: true, text: 'Mes' } },
+            y: {
+              title: { display: true, text: 'Ventas (Q)' },
+              beginAtZero: true
             }
           }
         }
-      }
-    };
-
-    // Crea el gráfico de ventas
-    const ventasChart = new Chart(
-      document.getElementById('ventasChart'),
-      config
-    );
+      });
+    });
+  
+    // Cargar tabla de trabajadores
+    const trabajadoresCollection = collection(db, "usuarios");
+    getDocs(trabajadoresCollection).then((querySnapshot) => {
+      const tbody = document.querySelector('table tbody');
+      tbody.innerHTML = '';
+      querySnapshot.forEach((doc) => {
+        const trabajador = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${trabajador.nombre || 'No disponible'}</td>
+          <td>${trabajador.correo || 'No disponible'}</td>
+          <td>${trabajador.rol || 'No disponible'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+  
+    // Mostrar productos con pocas existencias
+    const productosCollection = collection(db, "inventario");
+    getDocs(productosCollection).then((querySnapshot) => {
+      const lista = document.querySelector('.products-list ul');
+      lista.innerHTML = '';
+      querySnapshot.forEach((doc) => {
+        const producto = doc.data();
+        if (producto.cantidad <= producto.cantidadAlerta) {
+          const li = document.createElement('li');
+          li.textContent = `${producto.nombre} - Existencias: ${producto.cantidad}`;
+          lista.appendChild(li);
+        }
+      });
+    });
   </script>
+  
 </body>
 </html>

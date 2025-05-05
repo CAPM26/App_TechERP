@@ -1,130 +1,95 @@
+<!-- Actualizado: Dashboard ERP con estilo unificado -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard ERP</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="firebase.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
-      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
-
     .header {
-      background-color: #333;
-      color: white;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 20px;
+      padding: 10px 30px;
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    .header-column {
-      flex: 1;
-    }
-
-    .center-column {
-      text-align: center;
-    }
-
-    .right-column {
-      text-align: right;
-    }
-
-    .logo {
-      height: 50px;
-    }
-
+    .left-text { font-size: 16px; }
+    .logo { height: 80px; }
     .logout {
-      color: white;
       text-decoration: none;
-      font-weight: bold;
+      color: #007bff;
+      font-size: 16px;
     }
-
-    .logout:hover {
-      text-decoration: underline;
-    }
-
+    .logout:hover { text-decoration: underline; }
     .content {
       display: flex;
+      flex: 1;
+      overflow: hidden;
     }
-
     .sidebar {
-      width: 200px;
-      background-color: #222;
+      width: 220px;
+      background-color: #2c3e50;
       color: white;
+      height: 100%;
       padding: 20px;
-      height: 100vh;
     }
-
-    .sidebar h2 {
-      text-align: center;
-    }
-
-    .sidebar ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    .sidebar ul li {
-      margin: 15px 0;
-    }
-
+    .sidebar h2 { font-size: 20px; margin-bottom: 20px; text-align: center; }
+    .sidebar ul { list-style: none; padding: 0; }
+    .sidebar ul li { margin: 15px 0; }
     .sidebar ul li a {
       color: white;
       text-decoration: none;
-      font-weight: bold;
+      display: block;
+      padding: 8px;
+      border-radius: 4px;
     }
-
-    .sidebar ul li a:hover {
-      text-decoration: underline;
-    }
-
+    .sidebar ul li a:hover { background-color: #34495e; }
     .main {
       flex: 1;
+      background-color: #ecf0f1;
       padding: 20px;
+      overflow-y: auto;
     }
-
     .card {
       background-color: white;
       padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
     }
-
     .chart-container {
       width: 100%;
       height: 400px;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
     }
-
     th, td {
       padding: 12px;
       border: 1px solid #ddd;
       text-align: left;
     }
-
     th {
-      background-color: #f0f0f0;
+      background-color: #007bff;
+      color: white;
     }
-
     .products-list ul {
       padding-left: 20px;
     }
-
     .products-list li {
       margin-bottom: 8px;
     }
-
     #usuario-logueado {
       font-weight: bold;
       font-size: 16px;
@@ -133,9 +98,7 @@
 </head>
 <body>
   <div class="header">
-    <div class="header-column">
-      <span id="usuario-logueado">Bienvenido</span>
-    </div>
+    <div class="header-column"><span class="left-text" id="usuario-logueado">Bienvenido</span></div>
     <div class="header-column center-column">
       <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
     </div>
@@ -149,8 +112,8 @@
       <h2>Mi ERP</h2>
       <ul>
         <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="compras.html">Ventas</a></li>
-        <li><a href="ventas.html">Compras</a></li>
+        <li><a href="ventas.html">Ventas</a></li>
+        <li><a href="compras.html">Compras</a></li>
         <li><a href="inventario.html">Inventario</a></li>
         <li><a href="reportes.html">Reportes</a></li>
         <li><a href="usuarios.html">Usuarios</a></li>
@@ -188,24 +151,25 @@
     </div>
   </div>
 
+  <!-- El mismo script JS que ya tenías -->
   <script type="module">
     import { db } from './firebase.js';
     import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
     import { verificarSesion, ocultarLinksPorRol } from './auth.js';
-  
+
     verificarSesion();
-    ocultarLinksPorRol(); // Este se ejecuta automáticamente al terminar de cargar la página
-  
+    ocultarLinksPorRol();
+
     const usuario = localStorage.getItem("usuario") || "Josue";
     const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
     document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
-  
+
     window.cerrarSesion = function () {
       localStorage.removeItem("usuario");
       localStorage.removeItem("rol");
       window.location.href = "index.html";
-    }
-  
+    };
+
     // Gráfica de Ventas
     const ventasCollection = collection(db, "ventas");
     getDocs(ventasCollection).then((querySnapshot) => {
@@ -215,16 +179,14 @@
         const fecha = data.fecha.toDate();
         const mes = fecha.toLocaleString('default', { month: 'short', year: 'numeric' });
         const totalVenta = parseFloat(data.total) || 0;
-  
-        if (!ventasPorMes[mes]) {
-          ventasPorMes[mes] = 0;
-        }
+
+        if (!ventasPorMes[mes]) ventasPorMes[mes] = 0;
         ventasPorMes[mes] += totalVenta;
       });
-  
+
       const meses = Object.keys(ventasPorMes);
       const totales = Object.values(ventasPorMes);
-  
+
       new Chart(document.getElementById('ventasChart'), {
         type: 'bar',
         data: {
@@ -259,8 +221,8 @@
         }
       });
     });
-  
-    // Cargar tabla de trabajadores
+
+    // Cargar trabajadores
     const trabajadoresCollection = collection(db, "usuarios");
     getDocs(trabajadoresCollection).then((querySnapshot) => {
       const tbody = document.querySelector('table tbody');
@@ -276,7 +238,7 @@
         tbody.appendChild(tr);
       });
     });
-  
+
     // Mostrar productos con pocas existencias
     const productosCollection = collection(db, "inventario");
     getDocs(productosCollection).then((querySnapshot) => {
@@ -292,6 +254,5 @@
       });
     });
   </script>
-  
 </body>
 </html>

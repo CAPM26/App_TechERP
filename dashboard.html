@@ -1,4 +1,3 @@
-<!-- Actualizado: Dashboard ERP con estilo unificado -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -151,116 +150,115 @@
     </div>
   </div>
 
-  <!-- El mismo script JS que ya tenías -->
   <script type="module">
     import { db } from './firebase.js';
     import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-    import { verificarSesion, ocultarLinksPorRol } from './auth.js';
 
-    verificarSesion();
-    ocultarLinksPorRol();
+    // ✅ Verificar sesión manualmente
+    const usuario = localStorage.getItem("usuario");
+    const rol = localStorage.getItem("rol");
 
-    const usuario = localStorage.getItem("usuario") || "Josue";
+    if (!usuario || !rol) {
+      window.location.href = "index.html"; // redirige si no hay sesión
+    }
+
     const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
     document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
 
     window.cerrarSesion = function () {
       localStorage.removeItem("usuario");
       localStorage.removeItem("rol");
+      localStorage.removeItem("uid");
       window.location.href = "index.html";
     };
-// Gráfica de Ventas - corregida para acumular mensualmente
-const ventasCollection = collection(db, "ventas");
-getDocs(ventasCollection).then((querySnapshot) => {
-  const ventasPorMes = {};
 
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    const fecha = data.fecha.toDate(); // convertir timestamp
-    const mes = fecha.getMonth();      // 0 = enero, 11 = diciembre
-    const anio = fecha.getFullYear();
-    const clave = `${anio}-${mes + 1}`.padStart(7, '0'); // ej: 2025-05
-    const totalVenta = parseFloat(data.total) || 0;
+    // Cargar gráfica de ventas
+    const ventasCollection = collection(db, "ventas");
+    getDocs(ventasCollection).then((querySnapshot) => {
+      const ventasPorMes = {};
 
-    if (!ventasPorMes[clave]) {
-      ventasPorMes[clave] = 0;
-    }
-    ventasPorMes[clave] += totalVenta;
-  });
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const fecha = data.fecha.toDate();
+        const mes = fecha.getMonth();
+        const anio = fecha.getFullYear();
+        const clave = `${anio}-${mes + 1}`.padStart(7, '0');
+        const totalVenta = parseFloat(data.total) || 0;
 
-  // Ordenar claves cronológicamente
-  const clavesOrdenadas = Object.keys(ventasPorMes).sort();
+        if (!ventasPorMes[clave]) {
+          ventasPorMes[clave] = 0;
+        }
+        ventasPorMes[clave] += totalVenta;
+      });
 
-  const etiquetas = clavesOrdenadas.map(clave => {
-    const [anio, mes] = clave.split('-');
-    return new Date(anio, mes - 1).toLocaleString('es-ES', { month: 'short', year: 'numeric' });
-  });
+      const clavesOrdenadas = Object.keys(ventasPorMes).sort();
+      const etiquetas = clavesOrdenadas.map(clave => {
+        const [anio, mes] = clave.split('-');
+        return new Date(anio, mes - 1).toLocaleString('es-ES', { month: 'short', year: 'numeric' });
+      });
 
-  const totales = clavesOrdenadas.map(clave => ventasPorMes[clave]);
+      const totales = clavesOrdenadas.map(clave => ventasPorMes[clave]);
 
-  new Chart(document.getElementById('ventasChart'), {
-    type: 'bar',
-    data: {
-      labels: etiquetas,
-      datasets: [{
-        label: 'Total de Ventas',
-        data: totales,
-        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              return `Q ${context.raw.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
+      new Chart(document.getElementById('ventasChart'), {
+        type: 'bar',
+        data: {
+          labels: etiquetas,
+          datasets: [{
+            label: 'Total de Ventas',
+            data: totales,
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return `Q ${context.raw.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Mes' } },
+            y: {
+              title: { display: true, text: 'Ventas (Q)' },
+              beginAtZero: true
             }
           }
         }
-      },
-      scales: {
-        x: { title: { display: true, text: 'Mes' } },
-        y: {
-          title: { display: true, text: 'Ventas (Q)' },
-          beginAtZero: true
-        }
-      }
-    }
-  });
-});
-
+      });
+    });
 
     // Cargar trabajadores
-    const trabajadoresCollection = collection(db, "usuarios");
-    getDocs(trabajadoresCollection).then((querySnapshot) => {
+    getDocs(collection(db, "usuarios")).then((querySnapshot) => {
       const tbody = document.querySelector('table tbody');
       tbody.innerHTML = '';
       querySnapshot.forEach((doc) => {
-        const trabajador = doc.data();
+        const t = doc.data();
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${trabajador.nombre || 'No disponible'}</td>
-          <td>${trabajador.correo || 'No disponible'}</td>
-          <td>${trabajador.rol || 'No disponible'}</td>
+          <td>${t.nombre || 'No disponible'}</td>
+          <td>${t.correo || 'No disponible'}</td>
+          <td>${t.rol || 'No disponible'}</td>
         `;
         tbody.appendChild(tr);
       });
     });
 
-    // Mostrar productos con pocas existencias
-    const productosCollection = collection(db, "inventario");
-    getDocs(productosCollection).then((querySnapshot) => {
+    // Productos con poca existencia
+    getDocs(collection(db, "inventario")).then((querySnapshot) => {
       const lista = document.querySelector('.products-list ul');
       lista.innerHTML = '';
       querySnapshot.forEach((doc) => {
-        const producto = doc.data();
-        if (producto.cantidad <= producto.cantidadAlerta) {
+        const p = doc.data();
+        if (p.cantidad <= p.cantidadAlerta) {
           const li = document.createElement('li');
-          li.textContent = `${producto.nombre} - Existencias: ${producto.cantidad}`;
+          li.textContent = `${p.nombre} - Existencias: ${p.cantidad}`;
           lista.appendChild(li);
         }
       });

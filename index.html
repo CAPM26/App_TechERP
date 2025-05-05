@@ -83,7 +83,7 @@
     </div>
 
     <h2>Iniciar sesión en el ERP</h2>
-    <form onsubmit="login(event)">
+    <form id="login-form">
       <input id="email" type="email" placeholder="Correo electrónico" required />
       <input id="password" type="password" placeholder="Contraseña" required />
       <div class="error" id="error-msg"></div>
@@ -103,48 +103,50 @@
       doc
     } from './firebase.js';
 
-    async function login(e) {
+    const loginForm = document.getElementById('login-form');
+    const errorMsg = document.getElementById('error-msg');
+
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      errorMsg.textContent = '';
+
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      const errorMsg = document.getElementById("error-msg");
 
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
 
-        // Obtener datos del usuario en Firestore
-        const docRef = doc(db, "usuarios", uid);
-        const userDoc = await getDoc(docRef);
-
+        const userDoc = await getDoc(doc(db, "usuarios", uid));
         if (!userDoc.exists()) {
-          errorMsg.textContent = "⚠️ No se encontraron datos del usuario.";
+          errorMsg.textContent = "⚠️ Usuario sin perfil en el sistema.";
           return;
         }
 
         const userData = userDoc.data();
-
         if (userData.estado !== "activo") {
           errorMsg.textContent = "⚠️ Tu cuenta está inactiva. Contacta al administrador.";
           return;
         }
 
-        // Guardar datos en localStorage
+        // Guardar en localStorage
         localStorage.setItem("usuario", userData.nombre);
         localStorage.setItem("rol", userData.rol);
         localStorage.setItem("uid", uid);
 
-        // Redirigir al dashboard
         window.location.href = "dashboard.html";
 
       } catch (error) {
-        console.error("Login error:", error);
-        let msg = "❌ Error al iniciar sesión.";
-        if (error.code === 'auth/user-not-found') msg = "❌ Usuario no encontrado.";
-        else if (error.code === 'auth/wrong-password') msg = "❌ Contraseña incorrecta.";
-        errorMsg.textContent = msg;
+        console.error("Error al iniciar sesión:", error);
+        if (error.code === 'auth/user-not-found') {
+          errorMsg.textContent = "❌ Usuario no encontrado.";
+        } else if (error.code === 'auth/wrong-password') {
+          errorMsg.textContent = "❌ Contraseña incorrecta.";
+        } else {
+          errorMsg.textContent = "❌ Error al iniciar sesión.";
+        }
       }
-    }
+    });
   </script>
 </body>
 </html>

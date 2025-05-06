@@ -192,55 +192,70 @@
       setDoc,
       getDocs,
       collection,
-      doc
+      doc,
+      getDoc
     } from './firebase.js';
   
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-  
-    const authInstance = getAuth();
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
   
     const mensaje = document.getElementById("mensaje");
     const tbody = document.getElementById("tablaUsuarios").getElementsByTagName("tbody")[0];
     const usuarioLogueadoSpan = document.getElementById("usuario-logueado");
   
-    // Detectar login
-    onAuthStateChanged(authInstance, async (user) => {
+    // Ocultar menú según el rol del usuario
+    function mostrarOpcionesPermitidas(rolUsuario) {
+      const links = document.querySelectorAll('.sidebar a');
+      links.forEach(link => {
+        const rolesPermitidos = link.getAttribute('data-rol');
+        if (rolesPermitidos !== "todos" && !rolesPermitidos.includes(rolUsuario)) {
+          link.parentElement.style.display = "none";
+        }
+      });
+    }
+  
+    // Detectar usuario logueado
+    onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
         return;
       }
   
       const uid = user.uid;
-      const docRef = doc(db, "usuarios", uid);
-      const docSnap = await getDocs(collection(db, "usuarios"));
-      let userData = null;
+      const ref = doc(db, "usuarios", uid);
+      const snap = await getDoc(ref);
   
-      docSnap.forEach((d) => {
-        if (d.id === uid) userData = d.data();
-      });
+      if (!snap.exists()) {
+        alert("⚠️ Tu perfil no está registrado en el sistema.");
+        window.location.href = "index.html";
+        return;
+      }
   
-      const nombre = userData?.nombre || "Usuario";
-      const rol = userData?.rol || "Desconocido";
+      const data = snap.data();
+      const nombre = data.nombre || "Usuario";
+      const rol = data.rol || "Desconocido";
   
       usuarioLogueadoSpan.textContent = `Bienvenido, ${nombre}`;
   
-      // Ocultar menú si no es administrador
+      mostrarOpcionesPermitidas(rol);
+  
+      // Bloquear el acceso completo si no es administrador
       if (rol !== "Administrador") {
-        const usuariosLink = document.querySelector('a[href="usuarios.html"]');
-        if (usuariosLink) usuariosLink.style.display = "none";
-        alert("⚠️ No tienes permisos para ver esta sección.");
+        alert("⚠️ No tienes permisos para acceder a esta página.");
         window.location.href = "dashboard.html";
+        return;
       }
   
-      // Si sí es admin, carga usuarios
+      // Si es administrador, mostrar usuarios
       obtenerUsuarios();
     });
   
+    // Cerrar sesión
     window.cerrarSesion = function () {
       localStorage.clear();
       auth.signOut().then(() => window.location.href = "index.html");
     }
   
+    // Cargar usuarios en tabla
     async function obtenerUsuarios() {
       const snapshot = await getDocs(collection(db, "usuarios"));
       tbody.innerHTML = '';
@@ -257,6 +272,7 @@
       });
     }
   
+    // Registrar nuevo usuario
     document.getElementById("btnRegistrar").addEventListener("click", async () => {
       const nombre = document.getElementById("nombre").value.trim();
       const correo = document.getElementById("email").value.trim();
@@ -272,8 +288,8 @@
       }
   
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, correo, password);
-        const uid = userCredential.user.uid;
+        const cred = await createUserWithEmailAndPassword(auth, correo, password);
+        const uid = cred.user.uid;
   
         await setDoc(doc(db, "usuarios", uid), {
           nombre, correo, telefono, rol, estado
@@ -281,9 +297,9 @@
   
         mensaje.textContent = "✅ Usuario creado correctamente.";
         mensaje.style.color = "green";
-  
         obtenerUsuarios();
   
+        // Limpiar formulario
         document.getElementById("nombre").value = "";
         document.getElementById("email").value = "";
         document.getElementById("telefono").value = "";
@@ -298,6 +314,7 @@
       }
     });
   </script>
+  
   
 </body>
 </html>

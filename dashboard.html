@@ -153,30 +153,44 @@
   <script type="module">
     import { db } from './firebase.js';
     import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-
-    // ✅ Verificar sesión manualmente
+  
+    // Verificar sesión
     const usuario = localStorage.getItem("usuario");
-    const rol = localStorage.getItem("rol");
-
+    const rol = (localStorage.getItem("rol") || "").trim();
+  
     if (!usuario || !rol) {
-      window.location.href = "index.html"; // redirige si no hay sesión
+      window.location.href = "index.html";
     }
-
+  
+    // Mostrar nombre
     const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
     document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
-
+  
+    // Función para mostrar menú por rol
+    function mostrarOpcionesPermitidas(rolUsuario) {
+      const links = document.querySelectorAll('.sidebar a');
+      links.forEach(link => {
+        const rolesPermitidos = link.getAttribute('data-rol');
+        if (rolesPermitidos !== "todos" && !rolesPermitidos.includes(rolUsuario)) {
+          link.parentElement.style.display = "none";
+        }
+      });
+    }
+  
+    // Aplicar restricción de menú
+    mostrarOpcionesPermitidas(rol);
+  
+    // Cerrar sesión
     window.cerrarSesion = function () {
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("rol");
-      localStorage.removeItem("uid");
+      localStorage.clear();
       window.location.href = "index.html";
     };
-
+  
     // Cargar gráfica de ventas
     const ventasCollection = collection(db, "ventas");
     getDocs(ventasCollection).then((querySnapshot) => {
       const ventasPorMes = {};
-
+  
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const fecha = data.fecha.toDate();
@@ -184,21 +198,19 @@
         const anio = fecha.getFullYear();
         const clave = `${anio}-${mes + 1}`.padStart(7, '0');
         const totalVenta = parseFloat(data.total) || 0;
-
-        if (!ventasPorMes[clave]) {
-          ventasPorMes[clave] = 0;
-        }
+  
+        if (!ventasPorMes[clave]) ventasPorMes[clave] = 0;
         ventasPorMes[clave] += totalVenta;
       });
-
+  
       const clavesOrdenadas = Object.keys(ventasPorMes).sort();
       const etiquetas = clavesOrdenadas.map(clave => {
         const [anio, mes] = clave.split('-');
         return new Date(anio, mes - 1).toLocaleString('es-ES', { month: 'short', year: 'numeric' });
       });
-
+  
       const totales = clavesOrdenadas.map(clave => ventasPorMes[clave]);
-
+  
       new Chart(document.getElementById('ventasChart'), {
         type: 'bar',
         data: {
@@ -217,23 +229,18 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: function (context) {
-                  return `Q ${context.raw.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`;
-                }
+                label: context => `Q ${context.raw.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
               }
             }
           },
           scales: {
             x: { title: { display: true, text: 'Mes' } },
-            y: {
-              title: { display: true, text: 'Ventas (Q)' },
-              beginAtZero: true
-            }
+            y: { title: { display: true, text: 'Ventas (Q)' }, beginAtZero: true }
           }
         }
       });
     });
-
+  
     // Cargar trabajadores
     getDocs(collection(db, "usuarios")).then((querySnapshot) => {
       const tbody = document.querySelector('table tbody');
@@ -249,7 +256,7 @@
         tbody.appendChild(tr);
       });
     });
-
+  
     // Productos con poca existencia
     getDocs(collection(db, "inventario")).then((querySnapshot) => {
       const lista = document.querySelector('.products-list ul');
@@ -264,5 +271,6 @@
       });
     });
   </script>
+  
 </body>
 </html>

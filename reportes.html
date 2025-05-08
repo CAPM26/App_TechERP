@@ -222,16 +222,48 @@
 <script type="module">
   import { db } from './firebase.js';
   import {
-    collection, getDocs, query, where, Timestamp
+    collection, getDocs, query, where, Timestamp, getDoc, doc
   } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
-  const usuario = localStorage.getItem("usuario");
-  if (!usuario) {
-    window.location.href = "index.html";
-  } else {
-    const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
-    document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
-  }
+  const spanUsuario = document.getElementById("usuario-logueado");
+  const auth = getAuth();
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "index.html";
+      return;
+    }
+
+    const uid = user.uid;
+    const userDoc = await getDoc(doc(db, "usuarios", uid));
+    if (!userDoc.exists()) {
+      alert("⚠️ Tu perfil no está registrado.");
+      window.location.href = "index.html";
+      return;
+    }
+
+    const data = userDoc.data();
+    const nombre = data.nombre || "Usuario";
+    const rol = (data.rol || "Desconocido").trim();
+
+    spanUsuario.textContent = `Bienvenido, ${nombre}`;
+
+    const enlaces = document.querySelectorAll(".sidebar a");
+    enlaces.forEach(link => {
+      const ruta = link.getAttribute("href");
+      if (ruta === "usuarios.html" && rol !== "Administrador") link.parentElement.style.display = "none";
+      if (["compras.html", "inventario.html", "reportes.html"].includes(ruta) && !["Administrador", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
+      if (ruta === "ventas.html" && !["Administrador", "Vendedor", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
+    });
+
+    const permitido = ["Administrador", "Bodega"];
+    if (!permitido.includes(rol)) {
+      alert("⚠️ No tienes permisos para acceder a esta página.");
+      window.location.href = "dashboard.html";
+      return;
+    }
+  });
 
   window.cerrarSesion = function () {
     localStorage.removeItem("usuario");
@@ -251,18 +283,15 @@
     const fechaFinTimestamp = Timestamp.fromDate(new Date(fechaFin + 'T23:59:59'));
 
     try {
-      // 🔹 Ventas sí se filtran por fecha
       const ventasRef = collection(db, "ventas");
       const ventasQuery = query(ventasRef, where("fecha", ">=", fechaInicioTimestamp), where("fecha", "<=", fechaFinTimestamp));
       const ventasSnapshot = await getDocs(ventasQuery);
       const ventas = ventasSnapshot.docs.map(doc => doc.data());
 
-      // 🔹 Compras se cargan completas (sin filtro por fecha porque la fecha es un string)
       const comprasRef = collection(db, "compras");
       const comprasSnapshot = await getDocs(comprasRef);
       const compras = comprasSnapshot.docs.map(doc => doc.data());
 
-      // 🔹 Inventario
       const inventarioRef = collection(db, "inventario");
       const inventarioSnapshot = await getDocs(inventarioRef);
       const inventario = inventarioSnapshot.docs.map(doc => doc.data());

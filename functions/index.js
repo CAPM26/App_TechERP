@@ -1,19 +1,22 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
 
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
+admin.initializeApp();
+const db = admin.firestore();
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+exports.getUsuariosPrivado = functions.https.onCall(async (data, context) => {
+  const uid = context.auth?.uid;
+  if (!uid) {
+    throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
+  }
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  const userDoc = await db.collection("usuarios").doc(uid).get();
+  const userData = userDoc.data();
+
+  if (!userData || userData.rol !== "Administrador") {
+    throw new functions.https.HttpsError("permission-denied", "No tienes permisos para ver usuarios.");
+  }
+
+  const snapshot = await db.collection("usuarios").get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+});

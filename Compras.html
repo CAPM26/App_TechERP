@@ -24,15 +24,10 @@
     .logo { height: 80px; }
     .logout {
       text-decoration: none;
-      padding: 12px 20px;
-      background-color: #34495e;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      color: #007bff;
       font-size: 16px;
     }
-    .logout:hover { background-color: #0056b3;  }
+    .logout:hover { text-decoration: underline; }
     .content {
       display: flex;
       flex: 1;
@@ -118,19 +113,11 @@
       font-weight: bold;
       color: #856404;
     }
-    #usuario-logueado {
-      font-weight: bold;
-      font-size: 16px;
-    }
-    .sidebar ul li a.active {
-      background-color: #5d6d83;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="header-column"><span id="usuario-logueado">Bienvenido</span></div>
+    <div class="header-column"><span class="left-text" id="usuario-logueado">Bienvenido</span></div>
     <div class="header-column center-column">
       <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
     </div>
@@ -369,21 +356,7 @@
 
     mostrarCompras();
     mostrarInventario();
-<<<<<<< HEAD
 </script>
 
-=======
-
-    // Marcar la opción activa en el sidebar
-    const links = document.querySelectorAll('.sidebar a');
-    const currentPage = window.location.pathname.split("/").pop(); // por ejemplo: "usuarios.html"
-
-    links.forEach(link => {
-    if (link.getAttribute("href") === currentPage) {
-      link.classList.add("active");
-      }
-    });
-  </script>
->>>>>>> 76d4d22190f14d70e5dd377670c7b691c2cb4654
 </body>
 </html>

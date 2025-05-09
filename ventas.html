@@ -35,6 +35,10 @@
     </div>
 
     <div class="main">
+      <div style="text-align: right; margin-bottom: 20px;">
+        <button id="btnCerrarCaja">Cerrar Caja</button>
+      </div>
+    
       <h1>Realizar Venta</h1>
       <div class="card">
         <input type="text" id="nombreProducto" placeholder="Nombre del producto" oninput="mostrarSugerencias()" autocomplete="off">
@@ -269,5 +273,22 @@
       }
     });
   </script>
+  <!-- Modal de Cierre de Caja -->
+<div id="modalCierreCaja" class="modal-overlay">
+  <div class="modal-content">
+    <h3>Cerrar Caja</h3>
+    <label for="montoFinal">Monto final en caja:</label>
+    <input type="number" id="montoFinal" placeholder="Ej. 1500.00" />
+
+    <label for="observaciones">Observaciones (opcional):</label>
+    <input type="text" id="observaciones" placeholder="Comentarios..." />
+
+    <div class="modal-buttons">
+      <button id="confirmarCierre">Confirmar</button>
+      <button id="cancelarCierre">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

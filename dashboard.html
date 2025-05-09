@@ -3,144 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Caja - ERP</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+  <title>Dashboard ERP</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="firebase.js"></script>
+  <link rel="stylesheet" href="/static/lateral.css">
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 30px;
-      background-color: white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .left-text { font-size: 16px; }
-    .logo { height: 80px; }
-
-    .logout {
-      text-decoration: none;
-      color: #007bff;
-      font-size: 16px;
-    }
-
-    .logout:hover { text-decoration: underline; }
-
-    .content {
-      display: flex;
-      flex: 1;
-      padding: 30px;
-      gap: 30px;
-    }
-
-    .sidebar {
-      width: 220px;
-      background-color: #2c3e50;
-      color: white;
-      height: 100%;
-      padding: 20px;
-    }
-
-    .sidebar h2 { font-size: 20px; text-align: center; margin-bottom: 20px; }
-    .sidebar ul { list-style: none; padding: 0; }
-    .sidebar ul li { margin: 15px 0; }
-    .sidebar ul li a {
-      color: white;
-      text-decoration: none;
-      display: block;
-      padding: 8px;
-      border-radius: 4px;
-    }
-    .sidebar ul li a:hover { background-color: #34495e; }
-
-    .main {
-      flex: 1;
-      background-color: #ecf0f1;
-      padding: 20px;
-    }
-
-    .card {
-      background-color: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-
-    button {
-      padding: 12px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    .info-text {
-      font-size: 18px;
-      margin-bottom: 12px;
-    }
-
-    #estadoCaja {
-      font-weight: bold;
-      margin-top: 10px;
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-    }
-
-    .modal-content {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      width: 300px;
-      text-align: center;
-    }
-
-    .modal-content input {
-      width: 100%;
-      padding: 10px;
-      margin: 15px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 16px;
-    }
-
-    .modal-buttons {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-  </style>
 </head>
 <body>
-
   <div class="header">
-    <div class="header-column"><span class="left-text" id="usuario-logueado">Bienvenido</span></div>
+    <div class="header-column"><span id="usuario-logueado">Bienvenido</span></div>
     <div class="header-column center-column">
       <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
     </div>
@@ -153,122 +24,178 @@
     <div class="sidebar">
       <h2>Mi ERP</h2>
       <ul>
-        <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="ventas.html">Ventas</a></li>
-        <li><a href="compras.html">Compras</a></li>
-        <li><a href="inventario.html">Inventario</a></li>
-        <li><a href="reportes.html">Reportes</a></li>
-        <li><a href="usuarios.html">Usuarios</a></li>
-        <li><a href="caja.html">Caja</a></li>
+        <li><a href="dashboard.html" data-rol="todos">Inicio</a></li>
+        <li><a href="caja.html" data-rol="Administrador,Vendedor,Bodega">Ventas</a></li>
+        <li><a href="compras.html" data-rol="Administrador,Bodega">Compras</a></li>
+        <li><a href="inventario.html" data-rol="Administrador,Bodega">Inventario</a></li>
+        <li><a href="reportes.html" data-rol="Administrador,Bodega">Reportes</a></li>
+        <li><a href="usuarios.html" data-rol="Administrador">Usuarios</a></li>
       </ul>
     </div>
 
     <div class="main">
+      <h1>Pantalla principal</h1>
+
       <div class="card">
-        <p class="info-text" id="bienvenida">Bienvenido, listo para las ventas del día.</p>
-        <button id="btnAbrirCaja">Abrir Caja</button>
-        <p id="estadoCaja"></p>
-        <div id="accesoVentas" style="display: none; margin-top: 20px;">
-          <a href="ventas.html">
-            <button>Ir a Ventas</button>
-          </a>
+        <h2>Gráfica de Ventas</h2>
+        <div class="chart-container">
+          <canvas id="ventasChart"></canvas>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Modal -->
-  <div id="modalCaja" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Abrir Caja</h3>
-      <label for="montoInicial">Monto inicial en caja:</label>
-      <input type="number" id="montoInicial" placeholder="Ej. 100.00" />
-      <div class="modal-buttons">
-        <button id="confirmarApertura">Confirmar</button>
-        <button id="cancelarModal">Cancelar</button>
+      <div class="card">
+        <h2>Trabajadores</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Rol</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card products-list">
+        <h2>Productos con Pocas Existencias</h2>
+        <ul></ul>
       </div>
     </div>
   </div>
 
   <script type="module">
     import { db } from './firebase.js';
-    import {
-      collection, addDoc, query, where, getDocs
-    } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  
+    // Verificar sesión
     const usuario = localStorage.getItem("usuario");
-    const uid = localStorage.getItem("uid");
-
-    if (!usuario || !uid) {
+    const rol = (localStorage.getItem("rol") || "").trim();
+  
+    if (!usuario || !rol) {
       window.location.href = "index.html";
-    } else {
-      const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
-      document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
     }
-
+  
+    // Mostrar nombre
+    const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
+    document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
+  
+    // Función para mostrar menú por rol
+    function mostrarOpcionesPermitidas(rolUsuario) {
+      const links = document.querySelectorAll('.sidebar a');
+      links.forEach(link => {
+        const rolesPermitidos = link.getAttribute('data-rol');
+        if (rolesPermitidos !== "todos" && !rolesPermitidos.includes(rolUsuario)) {
+          link.parentElement.style.display = "none";
+        }
+      });
+    }
+  
+    // Aplicar restricción de menú
+    mostrarOpcionesPermitidas(rol);
+  
+    // Cerrar sesión
     window.cerrarSesion = function () {
       localStorage.clear();
       window.location.href = "index.html";
     };
+  
+    // Cargar gráfica de ventas
+    const ventasCollection = collection(db, "ventas");
+    getDocs(ventasCollection).then((querySnapshot) => {
+      const ventasPorMes = {};
+  
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const fecha = data.fecha.toDate();
+        const mes = fecha.getMonth();
+        const anio = fecha.getFullYear();
+        const clave = `${anio}-${mes + 1}`.padStart(7, '0');
+        const totalVenta = parseFloat(data.total) || 0;
+  
+        if (!ventasPorMes[clave]) ventasPorMes[clave] = 0;
+        ventasPorMes[clave] += totalVenta;
+      });
+  
+      const clavesOrdenadas = Object.keys(ventasPorMes).sort();
+      const etiquetas = clavesOrdenadas.map(clave => {
+        const [anio, mes] = clave.split('-');
+        return new Date(anio, mes - 1).toLocaleString('es-ES', { month: 'short', year: 'numeric' });
+      });
+  
+      const totales = clavesOrdenadas.map(clave => ventasPorMes[clave]);
+  
+      new Chart(document.getElementById('ventasChart'), {
+        type: 'bar',
+        data: {
+          labels: etiquetas,
+          datasets: [{
+            label: 'Total de Ventas',
+            data: totales,
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: context => `Q ${context.raw.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
+              }
+            }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Mes' } },
+            y: { title: { display: true, text: 'Ventas (Q)' }, beginAtZero: true }
+          }
+        }
+      });
+    });
+  
+    // Cargar trabajadores
+    getDocs(collection(db, "usuarios")).then((querySnapshot) => {
+      const tbody = document.querySelector('table tbody');
+      tbody.innerHTML = '';
+      querySnapshot.forEach((doc) => {
+        const t = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${t.nombre || 'No disponible'}</td>
+          <td>${t.correo || 'No disponible'}</td>
+          <td>${t.rol || 'No disponible'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+  
+    // Productos con poca existencia
+    getDocs(collection(db, "inventario")).then((querySnapshot) => {
+      const lista = document.querySelector('.products-list ul');
+      lista.innerHTML = '';
+      querySnapshot.forEach((doc) => {
+        const p = doc.data();
+        if (p.cantidad <= p.cantidadAlerta) {
+          const li = document.createElement('li');
+          li.textContent = `${p.nombre} - Existencias: ${p.cantidad}`;
+          lista.appendChild(li);
+        }
+      });
+    });
 
-    const btnAbrirCaja = document.getElementById("btnAbrirCaja");
-    const modalCaja = document.getElementById("modalCaja");
-    const confirmarApertura = document.getElementById("confirmarApertura");
-    const cancelarModal = document.getElementById("cancelarModal");
-    const montoInicialInput = document.getElementById("montoInicial");
-    const estadoCaja = document.getElementById("estadoCaja");
-    const accesoVentas = document.getElementById("accesoVentas");
+    // Marcar la opción activa en el sidebar
+    const links = document.querySelectorAll('.sidebar a');
+    const currentPage = window.location.pathname.split("/").pop(); // por ejemplo: "usuarios.html"
 
-    async function verificarCajaAbierta() {
-      const hoy = new Date().toISOString().split("T")[0];
-      const q = query(
-        collection(db, "cajas"),
-        where("uid", "==", uid),
-        where("fecha", "==", hoy),
-        where("estado", "==", "abierta")
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        estadoCaja.textContent = "✅ Caja abierta";
-        btnAbrirCaja.style.display = "none";
-        accesoVentas.style.display = "block";
+    links.forEach(link => {
+    if (link.getAttribute("href") === currentPage) {
+      link.classList.add("active");
       }
-    }
-
-    btnAbrirCaja.addEventListener("click", () => {
-      montoInicialInput.value = "";
-      modalCaja.style.display = "flex";
     });
 
-    cancelarModal.addEventListener("click", () => {
-      modalCaja.style.display = "none";
-    });
-
-    confirmarApertura.addEventListener("click", async () => {
-      const monto = parseFloat(montoInicialInput.value);
-      if (isNaN(monto)) {
-        alert("Ingresa un monto válido.");
-        return;
-      }
-
-      const hoy = new Date();
-      const caja = {
-        uid,
-        usuario,
-        fecha: hoy.toISOString().split("T")[0],
-        horaApertura: hoy.toLocaleTimeString(),
-        montoInicial: monto,
-        estado: "abierta"
-      };
-
-      await addDoc(collection(db, "cajas"), caja);
-      estadoCaja.textContent = "✅ Caja abierta";
-      btnAbrirCaja.style.display = "none";
-      accesoVentas.style.display = "block";
-      modalCaja.style.display = "none";
-    });
-
-    verificarCajaAbierta();
   </script>
+  
 </body>
 </html>

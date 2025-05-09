@@ -97,6 +97,44 @@
       font-weight: bold;
       margin-top: 10px;
     }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      width: 300px;
+      text-align: center;
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 10px;
+      margin: 15px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -139,10 +177,23 @@
     </div>
   </div>
 
+  <!-- Modal -->
+  <div id="modalCaja" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Abrir Caja</h3>
+      <label for="montoInicial">Monto inicial en caja:</label>
+      <input type="number" id="montoInicial" placeholder="Ej. 100.00" />
+      <div class="modal-buttons">
+        <button id="confirmarApertura">Confirmar</button>
+        <button id="cancelarModal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { db } from './firebase.js';
     import {
-      collection, addDoc, query, where, getDocs, Timestamp
+      collection, addDoc, query, where, getDocs
     } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
     const usuario = localStorage.getItem("usuario");
@@ -156,23 +207,24 @@
     }
 
     window.cerrarSesion = function () {
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("uid");
-      localStorage.removeItem("rol");
+      localStorage.clear();
       window.location.href = "index.html";
     };
 
     const btnAbrirCaja = document.getElementById("btnAbrirCaja");
+    const modalCaja = document.getElementById("modalCaja");
+    const confirmarApertura = document.getElementById("confirmarApertura");
+    const cancelarModal = document.getElementById("cancelarModal");
+    const montoInicialInput = document.getElementById("montoInicial");
     const estadoCaja = document.getElementById("estadoCaja");
     const accesoVentas = document.getElementById("accesoVentas");
 
     async function verificarCajaAbierta() {
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
+      const hoy = new Date().toISOString().split("T")[0];
       const q = query(
         collection(db, "cajas"),
         where("uid", "==", uid),
-        where("fecha", "==", hoy.toISOString().split("T")[0]),
+        where("fecha", "==", hoy),
         where("estado", "==", "abierta")
       );
       const snapshot = await getDocs(q);
@@ -183,16 +235,29 @@
       }
     }
 
-    btnAbrirCaja.addEventListener("click", async () => {
-      const montoInicial = prompt("¿Con cuánto dinero inicias la caja?", "0");
-      if (montoInicial === null || isNaN(parseFloat(montoInicial))) return;
+    btnAbrirCaja.addEventListener("click", () => {
+      montoInicialInput.value = "";
+      modalCaja.style.display = "flex";
+    });
 
+    cancelarModal.addEventListener("click", () => {
+      modalCaja.style.display = "none";
+    });
+
+    confirmarApertura.addEventListener("click", async () => {
+      const monto = parseFloat(montoInicialInput.value);
+      if (isNaN(monto)) {
+        alert("Ingresa un monto válido.");
+        return;
+      }
+
+      const hoy = new Date();
       const caja = {
         uid,
         usuario,
-        fecha: new Date().toISOString().split("T")[0],
-        horaApertura: new Date().toLocaleTimeString(),
-        montoInicial: parseFloat(montoInicial),
+        fecha: hoy.toISOString().split("T")[0],
+        horaApertura: hoy.toLocaleTimeString(),
+        montoInicial: monto,
         estado: "abierta"
       };
 
@@ -200,10 +265,10 @@
       estadoCaja.textContent = "✅ Caja abierta";
       btnAbrirCaja.style.display = "none";
       accesoVentas.style.display = "block";
+      modalCaja.style.display = "none";
     });
 
     verificarCajaAbierta();
   </script>
-
 </body>
 </html>

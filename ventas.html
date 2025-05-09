@@ -273,60 +273,44 @@
       }
     });
 
-    import { query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+      // Cierre de caja
+  btnCerrarCaja.addEventListener("click", () => {
+    modal.style.display = "flex";
+  });
 
-const btnCerrarCaja = document.getElementById("btnCerrarCaja");
-const modalCierreCaja = document.getElementById("modalCierreCaja");
-const confirmarCierre = document.getElementById("confirmarCierre");
-const cancelarCierre = document.getElementById("cancelarCierre");
+  cancelar.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
 
-btnCerrarCaja.addEventListener("click", () => {
-  document.getElementById("montoFinal").value = "";
-  document.getElementById("observaciones").value = "";
-  modalCierreCaja.style.display = "flex";
-});
+  confirmar.addEventListener("click", async () => {
+    const montoFinal = parseFloat(document.getElementById("montoFinal").value);
+    const observaciones = document.getElementById("observaciones").value || "";
 
-cancelarCierre.addEventListener("click", () => {
-  modalCierreCaja.style.display = "none";
-});
+    if (isNaN(montoFinal)) return alert("Monto inválido");
 
-confirmarCierre.addEventListener("click", async () => {
-  const montoFinal = parseFloat(document.getElementById("montoFinal").value);
-  const observaciones = document.getElementById("observaciones").value || "";
+    const hoy = new Date().toISOString().split("T")[0];
+    const cajas = await getDocs(query(
+      collection(db, "cajas"),
+      where("uid", "==", uid),
+      where("fecha", "==", hoy),
+      where("estado", "==", "abierta")
+    ));
 
-  if (isNaN(montoFinal)) {
-    alert("Ingresa un monto válido.");
-    return;
-  }
-
-  const uid = auth.currentUser?.uid;
-  const hoy = new Date().toISOString().split("T")[0];
-
-  const q = query(
-    collection(db, "cajas"),
-    where("uid", "==", uid),
-    where("fecha", "==", hoy),
-    where("estado", "==", "abierta")
-  );
-  const snapshot = await getDocs(q);
-
-  if (!snapshot.empty) {
-    const docRef = snapshot.docs[0].ref;
-    await updateDoc(docRef, {
-      estado: "cerrada",
-      horaCierre: new Date().toLocaleTimeString(),
-      montoFinal,
-      observaciones
-    });
-    alert("✅ Caja cerrada correctamente.");
-    modalCierreCaja.style.display = "none";
-    location.reload();
-  } else {
-    alert("⚠️ No hay una caja abierta para cerrar.");
-    modalCierreCaja.style.display = "none";
-  }
-});
-
+    if (!cajas.empty) {
+      const ref = cajas.docs[0].ref;
+      await updateDoc(ref, {
+        estado: "cerrada",
+        horaCierre: new Date().toLocaleTimeString(),
+        montoFinal,
+        observaciones
+      });
+      alert("✅ Caja cerrada correctamente.");
+      modal.style.display = "none";
+      location.reload();
+    } else {
+      alert("⚠️ No hay caja abierta.");
+    }
+  });
   </script>
   <!-- Modal de Cierre de Caja -->
 <div id="modalCierreCaja" class="modal-overlay">
@@ -334,10 +318,8 @@ confirmarCierre.addEventListener("click", async () => {
     <h3>Cerrar Caja</h3>
     <label for="montoFinal">Monto final en caja:</label>
     <input type="number" id="montoFinal" placeholder="Ej. 1500.00" />
-
     <label for="observaciones">Observaciones (opcional):</label>
     <input type="text" id="observaciones" placeholder="Comentarios..." />
-
     <div class="modal-buttons">
       <button id="confirmarCierre">Confirmar</button>
       <button id="cancelarCierre">Cancelar</button>

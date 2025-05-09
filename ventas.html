@@ -35,13 +35,28 @@
     <div class="main">
       <h1>Realizar Venta</h1>
 
-      <button id="btnCerrarCaja" style="margin-bottom: 20px; display: none;">Cerrar Caja</button>
+      <!-- Modal de cierre de caja -->
+<div id="modalCierreCaja" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <h3>¿Deseas cerrar la caja?</h3>
+    <div id="resumenCierreCaja" style="margin-bottom: 20px;">
+      <p><strong>Monto Inicial:</strong> Q<span id="montoInicialResumen"></span></p>
+      <p><strong>Total Vendido:</strong> Q<span id="totalVendidoResumen"></span></p>
+      <p><strong>Número de Ventas:</strong> <span id="cantidadVentasResumen"></span></p>
+      <p><strong>Total Final en Caja:</strong> Q<span id="totalFinalResumen"></span></p>
+    </div>
+    <div class="modal-buttons">
+      <button id="confirmarCierre">Confirmar Cierre</button>
+      <button id="cancelarCierre">Cancelar</button>
+    </div>
+  </div>
+</div>
 
       <div class="card">
         <input type="text" id="nombreProducto" placeholder="Nombre del producto" oninput="mostrarSugerencias()" autocomplete="off">
         <input type="number" id="cantidadVenta" placeholder="Cantidad a vender" oninput="calcularTotal()">
         <input type="number" id="descuento" placeholder="Descuento (%)" oninput="calcularTotal()" min="0" max="100">
-        <div class="total">Total sin descuento: <span id="totalSinDescuento">0.00 Q</span></div>
+        <div class="total">Fer sin descuento: <span id="totalSinDescuento">0.00 Q</span></div>
         <div class="total-discount">Total con descuento: <span id="totalConDescuento">0.00 Q</span></div>
         <button id="btnRealizarVenta">Realizar Venta</button>
         <p id="mensaje"></p>

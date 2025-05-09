@@ -272,6 +272,61 @@
       link.classList.add("active");
       }
     });
+
+    import { query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+const btnCerrarCaja = document.getElementById("btnCerrarCaja");
+const modalCierreCaja = document.getElementById("modalCierreCaja");
+const confirmarCierre = document.getElementById("confirmarCierre");
+const cancelarCierre = document.getElementById("cancelarCierre");
+
+btnCerrarCaja.addEventListener("click", () => {
+  document.getElementById("montoFinal").value = "";
+  document.getElementById("observaciones").value = "";
+  modalCierreCaja.style.display = "flex";
+});
+
+cancelarCierre.addEventListener("click", () => {
+  modalCierreCaja.style.display = "none";
+});
+
+confirmarCierre.addEventListener("click", async () => {
+  const montoFinal = parseFloat(document.getElementById("montoFinal").value);
+  const observaciones = document.getElementById("observaciones").value || "";
+
+  if (isNaN(montoFinal)) {
+    alert("Ingresa un monto válido.");
+    return;
+  }
+
+  const uid = auth.currentUser?.uid;
+  const hoy = new Date().toISOString().split("T")[0];
+
+  const q = query(
+    collection(db, "cajas"),
+    where("uid", "==", uid),
+    where("fecha", "==", hoy),
+    where("estado", "==", "abierta")
+  );
+  const snapshot = await getDocs(q);
+
+  if (!snapshot.empty) {
+    const docRef = snapshot.docs[0].ref;
+    await updateDoc(docRef, {
+      estado: "cerrada",
+      horaCierre: new Date().toLocaleTimeString(),
+      montoFinal,
+      observaciones
+    });
+    alert("✅ Caja cerrada correctamente.");
+    modalCierreCaja.style.display = "none";
+    location.reload();
+  } else {
+    alert("⚠️ No hay una caja abierta para cerrar.");
+    modalCierreCaja.style.display = "none";
+  }
+});
+
   </script>
   <!-- Modal de Cierre de Caja -->
 <div id="modalCierreCaja" class="modal-overlay">

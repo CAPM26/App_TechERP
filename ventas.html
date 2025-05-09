@@ -291,28 +291,65 @@
 
       if (!snapshot.empty) {
         const cajaDoc = snapshot.docs[0];
-        const btnCerrarCaja = document.getElementById("btnCerrarCaja");
-        btnCerrarCaja.style.display = "block";
-        btnCerrarCaja.onclick = async () => {
-          const horaCierre = new Date().toLocaleTimeString();
-          await updateDoc(cajaDoc.ref, {
-            estado: "cerrada",
-            horaCierre: horaCierre
-          });
-          alert("✅ Caja cerrada correctamente.");
-          btnCerrarCaja.style.display = "none";
-        };
-      }
-    }
+        const modalCierreCaja = document.getElementById("modalCierreCaja");
+const confirmarCierre = document.getElementById("confirmarCierre");
+const cancelarCierre = document.getElementById("cancelarCierre");
 
-    // Marcar la opción activa en el sidebar
-    const links = document.querySelectorAll('.sidebar a');
-    const currentPage = window.location.pathname.split("/").pop();
-    links.forEach(link => {
-      if (link.getAttribute("href") === currentPage) {
-        link.classList.add("active");
-      }
-    });
+async function verificarCajaAbiertaYMostrarCerrar(uid) {
+  const hoy = new Date().toISOString().split("T")[0];
+  const q = query(
+    collection(db, "cajas"),
+    where("uid", "==", uid),
+    where("fecha", "==", hoy),
+    where("estado", "==", "abierta")
+  );
+  const snapshot = await getDocs(q);
+
+  if (!snapshot.empty) {
+    const cajaDoc = snapshot.docs[0];
+    const cajaData = cajaDoc.data();
+    btnCerrarCaja.style.display = "block";
+
+    btnCerrarCaja.onclick = async () => {
+      const ventasHoy = await getDocs(query(
+        collection(db, "ventas"),
+        where("fecha", ">=", new Date(`${hoy}T00:00:00`)),
+        where("fecha", "<=", new Date(`${hoy}T23:59:59`))
+      ));
+      let total = 0;
+      ventasHoy.forEach(doc => total += doc.data().total || 0);
+      const cantidad = ventasHoy.size;
+      const montoInicial = cajaData.montoInicial;
+      const totalFinal = montoInicial + total;
+
+      document.getElementById("montoInicialResumen").textContent = montoInicial.toFixed(2);
+      document.getElementById("totalVendidoResumen").textContent = total.toFixed(2);
+      document.getElementById("cantidadVentasResumen").textContent = cantidad;
+      document.getElementById("totalFinalResumen").textContent = totalFinal.toFixed(2);
+
+      modalCierreCaja.style.display = "flex";
+
+      confirmarCierre.onclick = async () => {
+        const horaCierre = new Date().toLocaleTimeString();
+        await updateDoc(cajaDoc.ref, {
+          estado: "cerrada",
+          horaCierre: horaCierre,
+          totalVendido: total,
+          totalFinal: totalFinal
+        });
+        alert("✅ Caja cerrada correctamente.");
+        modalCierreCaja.style.display = "none";
+        btnCerrarCaja.style.display = "none";
+      };
+
+      cancelarCierre.onclick = () => {
+        modalCierreCaja.style.display = "none";
+      };
+    };
+  }
+}
+}
+}
   </script>
 </body>
 </html>

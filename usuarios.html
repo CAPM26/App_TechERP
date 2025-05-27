@@ -42,7 +42,7 @@
       <div class="card">
         <input id="nombre" type="text" placeholder="Nombre completo" required minlength="3" maxlength="50">
         <input id="email" type="email" placeholder="Correo electrónico" required maxlength="50">
-        <input id="telefono" type="tel" placeholder="Teléfono" required pattern="[0-9]{8,15}" maxlength="15">
+        <input id="telefono" type="number" placeholder="Teléfono" required pattern="[0-9]{8,15}" maxlength="15">
         <div class="input-group">
           <input id="password" type="password" placeholder="Contraseña (mínimo 8 caracteres)" minlength="8" maxlength="30" autocomplete="new-password" style="flex:1;">
           <button type="button" id="togglePassword" title="Mostrar/Ocultar contraseña" tabindex="-1" aria-label="Mostrar contraseña">
@@ -74,7 +74,7 @@
         </select>
         <div>
           <button id="btnRegistrar">Guardar Usuario</button>
-          <button type="button" class="secondary" id="btnLimpiar">Limpiar</button>
+          <button type="button" class="secondary" id="btnLimpiar">Limpiar campos</button>
         </div>
       </div>
 
@@ -185,6 +185,18 @@
       });
       mostrarUsuarios(usuarios);
     }
+
+    document.getElementById("btnLimpiar").addEventListener("click", function() {
+    document.getElementById("nombre").value = "";
+    document.getElementById("email").value = "";
+    document.getElementById("telefono").value = "";
+    document.getElementById("password").value = "";
+    document.getElementById("confirmPassword").value = "";
+    document.getElementById("rol").value = "";
+    document.getElementById("estado").value = "";
+    document.getElementById("btnRegistrar").textContent = "Guardar Usuario";
+    idEditando = null;
+    });
 
         function mostrarUsuarios(lista) {
       tbody.innerHTML = '';
@@ -352,46 +364,30 @@ document.getElementById("btnRegistrar").addEventListener("click", async () => {
     return;
   }
 
-  try {
-if (idEditando) {
-  await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
-  Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
-} else {
-  const confirm = await Swal.fire({
-    icon: 'warning',
-    title: 'Se cerrará la sesión',
-    html: 'Al crear un usuario, tu sesión actual se cerrará y deberás ingresar de nuevo.<br><br>¿Deseas continuar?',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, crear usuario',
-    cancelButtonText: 'Cancelar'
-  });
-  if (!confirm.isConfirmed) return;
-
-  const cred = await createUserWithEmailAndPassword(auth, correo, password);
-  const uid = cred.user.uid;
-  await setDoc(doc(db, "usuarios", uid), { nombre, correo, telefono, rol, estado });
-
-  // Cierra sesión y redirige inmediatamente
-  await auth.signOut();
-  window.location.href = "index.html";
-  return;
-}
-
-    obtenerUsuarios();
-    document.getElementById("nombre").value = "";
-    document.getElementById("email").value = "";
-    document.getElementById("telefono").value = "";
-    document.getElementById("password").value = "";
-    document.getElementById("confirmPassword").value = "";
-    document.getElementById("rol").value = "";
-    document.getElementById("estado").value = "";
-    document.getElementById("btnRegistrar").textContent = "Guardar Usuario";
-    idEditando = null;
-
-  } catch (error) {
-    console.error("Error al guardar usuario:", error);
-    Swal.fire('¡Error!', 'No se pudo guardar el usuario.', 'error');
+try {
+  if (idEditando) {
+    await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
+    Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
+  } else {
+    await setDoc(doc(collection(db, "usuarios")), { nombre, correo, telefono, rol, estado });
+    Swal.fire('¡Guardado!', 'El usuario ha sido creado correctamente.', 'success');
   }
+
+  obtenerUsuarios();
+  document.getElementById("nombre").value = "";
+  document.getElementById("email").value = "";
+  document.getElementById("telefono").value = "";
+  document.getElementById("password").value = "";
+  document.getElementById("confirmPassword").value = "";
+  document.getElementById("rol").value = "";
+  document.getElementById("estado").value = "";
+  document.getElementById("btnRegistrar").textContent = "Guardar Usuario";
+  idEditando = null;
+
+} catch (error) {
+  console.error("Error al guardar usuario:", error);
+  Swal.fire('¡Error!', 'No se pudo guardar el usuario.', 'error');
+}
 });
   </script>
 </body>

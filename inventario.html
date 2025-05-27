@@ -45,13 +45,17 @@
       <h1>Inventario</h1>
       <div class="card">
         <input type="text" id="nombre" placeholder="Nombre del producto" required>
+        <select id="categoria" required>
+        <option value="">Selecciona una categoría</option>
+        <!-- Opciones se llenan dinámicamente -->
+        <option value="_nueva_">Agregar nueva categoría...</option>
         <input type="number" id="cantidad" placeholder="Cantidad existente" min="0" required>
         <input type="number" id="cantidadAlerta" placeholder="Cantidad de alerta" min="5" required>
         <input type="number" id="precio" placeholder="Precio" step="0.01" min="0" required>
         <input type="url" id="imagen" placeholder="URL de imagen (opcional)">
         <div>
           <button id="btnGuardar">Guardar producto</button>
-          <button class="secondary" onclick="imprimirInventario()">Imprimir</button>
+          <button class="secondary" onclick="LimpiarCampos()">Limpiar campos</button>
         </div>
       </div>
 
@@ -61,6 +65,7 @@
         <thead>
           <tr>
             <th>Nombre</th>
+            <th>Categoría</th>
             <th>Cantidad</th>
             <th>Alerta</th>
             <th>Precio</th>
@@ -76,7 +81,7 @@
   <script type="module">
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc} from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -132,11 +137,66 @@ onAuthStateChanged(auth, async (user) => {
     let idEditando = null;
     let productos = [];
 
-    async function obtenerProductos() {
-      const snapshot = await getDocs(collection(db, "inventario"));
-      productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      mostrarProductos(productos);
-    }
+let categoriasUnicas = [];
+
+async function obtenerProductos() {
+  const snapshot = await getDocs(collection(db, "inventario"));
+  productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // Obtener categorías únicas
+  categoriasUnicas = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
+  llenarSelectCategorias();
+
+  mostrarProductos(productos);
+}
+
+function llenarSelectCategorias() {
+  const select = document.getElementById("categoria");
+  // Limpiar opciones excepto la primera y la de nueva categoría
+  select.innerHTML = '<option value="">Selecciona una categoría</option>';
+  categoriasUnicas.forEach(cat => {
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    select.appendChild(option);
+  });
+  // Opción para agregar nueva categoría
+  const nuevaOption = document.createElement("option");
+  nuevaOption.value = "_nueva_";
+  nuevaOption.textContent = "Agregar nueva categoría...";
+  select.appendChild(nuevaOption);
+}
+
+// Evento para detectar si el usuario quiere agregar una nueva categoría
+document.getElementById("categoria").addEventListener("change", function(e) {
+  if (e.target.value === "_nueva_") {
+    Swal.fire({
+      title: 'Nueva categoría',
+      input: 'text',
+      inputLabel: 'Nombre de la nueva categoría',
+      inputPlaceholder: 'Ejemplo: Electrónica',
+      showCancelButton: true,
+      confirmButtonText: 'Agregar',
+      cancelButtonText: 'Cancelar',
+      inputValidator: (value) => {
+        if (!value) {
+          return '¡Debes escribir un nombre!';
+        }
+        if (categoriasUnicas.includes(value)) {
+          return '¡La categoría ya existe!';
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        categoriasUnicas.push(result.value);
+        llenarSelectCategorias();
+        document.getElementById("categoria").value = result.value;
+      } else {
+        document.getElementById("categoria").value = "";
+      }
+    });
+  }
+});
 
     function mostrarProductos(listaProductos) {
       tablaBody.innerHTML = "";
@@ -148,6 +208,7 @@ onAuthStateChanged(auth, async (user) => {
 
         row.innerHTML = `
           <td>${producto.nombre}</td>
+          <td>${producto.categoria || '-'}</td>
           <td>${producto.cantidad}</td>
           <td>${producto.alerta || '-'}</td>
           <td>${parseFloat(producto.precio).toLocaleString('es-GT', { style: 'currency', currency: 'GTQ' })}</td>
@@ -166,6 +227,11 @@ onAuthStateChanged(auth, async (user) => {
         const producto = productoSnap.data();
         document.getElementById('nombre').focus();
         document.getElementById("nombre").value = producto.nombre;
+      if (producto.categoria && !categoriasUnicas.includes(producto.categoria)) {
+        categoriasUnicas.push(producto.categoria);
+        llenarSelectCategorias();
+      }
+      document.getElementById("categoria").value = producto.categoria || '';
         document.getElementById("cantidad").value = producto.cantidad;
         document.getElementById("cantidadAlerta").value = producto.alerta || '';
         document.getElementById("precio").value = producto.precio;
@@ -216,13 +282,14 @@ onAuthStateChanged(auth, async (user) => {
 
     document.getElementById("btnGuardar").addEventListener("click", async function () {
       const nombre = document.getElementById("nombre").value.trim();
+      const categoria = document.getElementById("categoria").value.trim(); // Obtener categoría
       const cantidad = parseInt(document.getElementById("cantidad").value);
       const alerta = parseInt(document.getElementById("cantidadAlerta").value);
       const precio = parseFloat(document.getElementById("precio").value);
       const imagen = document.getElementById("imagen").value.trim();
 
 // Revisa si algun campo está vacío
-      if (!nombre || cantidad === "" || alerta === "" || precio === "") {
+      if (!nombre || !categoria || cantidad === "" || alerta === "" || precio === "") {
         Swal.fire({
           icon: 'error',
           title: 'Campos incompletos',
@@ -241,7 +308,7 @@ onAuthStateChanged(auth, async (user) => {
         return;
       }
 
-      const producto = { nombre, cantidad, alerta, precio, imagen };
+      const producto = { nombre, categoria, cantidad, alerta, precio, imagen };
       try {
         if (idEditando) {
           await updateDoc(doc(db, "inventario", idEditando), producto);
@@ -253,6 +320,7 @@ onAuthStateChanged(auth, async (user) => {
 
         obtenerProductos();
         document.getElementById("nombre").value = "";
+        document.getElementById("categoria").value = ""; 
         document.getElementById("cantidad").value = "";
         document.getElementById("cantidadAlerta").value = "";
         document.getElementById("precio").value = "";
@@ -264,6 +332,17 @@ onAuthStateChanged(auth, async (user) => {
         Swal.fire('¡Error!', 'No se pudo guardar el producto.', 'error');
       }
     });
+
+    window.LimpiarCampos = function() {
+    document.getElementById("nombre").value = "";
+    document.getElementById("categoria").value = "";
+    document.getElementById("cantidad").value = "";
+    document.getElementById("cantidadAlerta").value = "";
+    document.getElementById("precio").value = "";
+    document.getElementById("imagen").value = "";
+    document.getElementById("btnGuardar").textContent = "Guardar producto";
+    idEditando = null;
+    };
 
     // Marcar la opción activa en el sidebar
     const links = document.querySelectorAll('.sidebar a');

@@ -72,6 +72,23 @@
         <button id="btnGenerarReporte">Generar Reporte</button>
       </div>
 
+      <h2>Reporte de Facturas</h2>
+      <table id="tablaFacturas">
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Cliente</th>
+            <th>NIT</th>
+            <th>Forma de Pago</th>
+            <th>Cuotas</th>
+            <th>Total (Q)</th>
+            <th>Fecha</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
       <h2>Reporte de Ventas</h2>
       <table id="tablaVentas">
         <thead>
@@ -211,6 +228,11 @@ onAuthStateChanged(auth, async (user) => {
     const fechaFinTimestamp = Timestamp.fromDate(new Date(fechaFin + 'T23:59:59'));
 
     try {
+      // Facturas filtradas por fecha
+      const facturasRef = collection(db, "facturas");
+      const facturasQuery = query(facturasRef, where("fecha", ">=", fechaInicioTimestamp), where("fecha", "<=", fechaFinTimestamp));
+      const facturasSnapshot = await getDocs(facturasQuery);
+      const facturas = facturasSnapshot.docs.map(doc => doc.data());
       // Ventas filtradas por fecha
       const ventasRef = collection(db, "ventas");
       const ventasQuery = query(ventasRef, where("fecha", ">=", fechaInicioTimestamp), where("fecha", "<=", fechaFinTimestamp));
@@ -228,6 +250,7 @@ onAuthStateChanged(auth, async (user) => {
       const inventarioSnapshot = await getDocs(inventarioRef);
       const inventario = inventarioSnapshot.docs.map(doc => doc.data());
 
+      mostrarFacturas(facturas);
       mostrarVentas(ventas);
       mostrarCompras(compras);
       mostrarInventario(inventario);
@@ -249,6 +272,64 @@ onAuthStateChanged(auth, async (user) => {
       console.error("Error al obtener reportes:", error);
     }
   });
+
+function mostrarFacturas(facturas) {
+  const tabla = document.getElementById("tablaFacturas").getElementsByTagName('tbody')[0];
+  tabla.innerHTML = '';
+  facturas.forEach((factura, idx) => {
+    const row = tabla.insertRow();
+    row.innerHTML = `
+      <td>${factura.numero || '-'}</td>
+      <td>${factura.cliente || '-'}</td>
+      <td>${factura.nit || '-'}</td>
+      <td>${factura.formaPago || '-'}</td>
+      <td>${factura.cuotas ?? '-'}</td>
+      <td>Q${factura.total ?? '-'}</td>
+      <td>${factura.fecha?.seconds ? new Date(factura.fecha.seconds * 1000).toLocaleString('es-ES') : 'Sin fecha'}</td>
+      <td><button class="detalle-factura-btn" data-idx="${idx}">Ver</button></td>
+    `;
+  });
+
+  // Evento para mostrar detalle de productos
+  document.querySelectorAll('.detalle-factura-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const idx = this.getAttribute('data-idx');
+      const factura = facturas[idx];
+      if (!factura.productos || !Array.isArray(factura.productos) || factura.productos.length === 0) {
+        Swal.fire('Sin productos', 'Esta factura no tiene productos registrados.', 'info');
+        return;
+      }
+      let html = `
+        <table style="width:100%;text-align:left">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario (Q)</th>
+              <th>Subtotal (Q)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${factura.productos.map(p => `
+              <tr>
+                <td>${p.producto || '-'}</td>
+                <td>${p.cantidad ?? '-'}</td>
+                <td>Q${p.precioUnitario ?? '-'}</td>
+                <td>Q${p.subtotal ?? '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      Swal.fire({
+        title: `Detalle de productos`,
+        html: html,
+        width: 600,
+        confirmButtonText: 'Cerrar'
+      });
+    });
+  });
+}
 
  function mostrarVentas(ventas) {
     const tabla = document.getElementById("tablaVentas").getElementsByTagName('tbody')[0];

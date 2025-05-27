@@ -39,13 +39,28 @@
 
     <div class="main">
       <h1>Gestión de Usuarios</h1>
-
       <div class="card">
-        <h2>Registrar / Editar Usuario</h2>
-        <input id="nombre" type="text" placeholder="Nombre completo" required />
-        <input id="email" type="email" placeholder="Correo electrónico" required />
-        <input id="telefono" type="text" placeholder="Teléfono" required />
-        <input id="password" type="password" placeholder="Contraseña" />
+        <input id="nombre" type="text" placeholder="Nombre completo" required minlength="3" maxlength="50">
+        <input id="email" type="email" placeholder="Correo electrónico" required maxlength="50">
+        <input id="telefono" type="tel" placeholder="Teléfono" required pattern="[0-9]{8,15}" maxlength="15">
+        <div class="input-group">
+          <input id="password" type="password" placeholder="Contraseña (mínimo 8 caracteres)" minlength="8" maxlength="30" autocomplete="new-password" style="flex:1;">
+          <button type="button" id="togglePassword" title="Mostrar/Ocultar contraseña" tabindex="-1" aria-label="Mostrar contraseña">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="#555" stroke-width="2" fill="none"/>
+              <circle cx="12" cy="12" r="3.5" stroke="#555" stroke-width="2" fill="none"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-group">
+          <input id="confirmPassword" type="password" placeholder="Confirmar contraseña" minlength="8" maxlength="30" autocomplete="new-password" style="flex:1;">
+          <button type="button" id="toggleConfirmPassword" title="Mostrar/Ocultar contraseña" tabindex="-1" aria-label="Mostrar contraseña">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="#555" stroke-width="2" fill="none"/>
+              <circle cx="12" cy="12" r="3.5" stroke="#555" stroke-width="2" fill="none"/>
+            </svg>
+          </button>
+        </div>
         <select id="rol" required>
           <option value="">Selecciona un rol</option>
           <option value="Administrador">Administrador</option>
@@ -57,26 +72,27 @@
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>
         </select>
-        <button id="btnRegistrar">Guardar Usuario</button>
-        <p id="mensaje"></p>
+        <div>
+          <button id="btnRegistrar">Guardar Usuario</button>
+          <button type="button" class="secondary" id="btnLimpiar">Limpiar</button>
+        </div>
       </div>
 
       <h2>Lista de Usuarios</h2>
-      <div class="card">
-        <table id="tablaUsuarios">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Teléfono</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <input type="text" id="busquedaUsuario" placeholder="Buscar por nombre o correo" oninput="filtrarUsuarios()">
+      <table id="tablaUsuarios">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Teléfono</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 
@@ -95,10 +111,36 @@
 
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
-    const mensaje = document.getElementById("mensaje");
+  const passwordInput = document.getElementById("password");
+  const togglePasswordBtn = document.getElementById("togglePassword");
+  const confirmPasswordInput = document.getElementById("confirmPassword");
+  const toggleConfirmPasswordBtn = document.getElementById("toggleConfirmPassword");
+    
+  togglePasswordBtn.addEventListener("mousedown", () => {
+    passwordInput.type = "text";
+  });
+  togglePasswordBtn.addEventListener("mouseup", () => {
+    passwordInput.type = "password";
+  });
+  togglePasswordBtn.addEventListener("mouseleave", () => {
+    passwordInput.type = "password";
+  });
+  
+  toggleConfirmPasswordBtn.addEventListener("mousedown", () => {
+    confirmPasswordInput.type = "text";
+  });
+  toggleConfirmPasswordBtn.addEventListener("mouseup", () => {
+    confirmPasswordInput.type = "password";
+  });
+  toggleConfirmPasswordBtn.addEventListener("mouseleave", () => {
+    confirmPasswordInput.type = "password";
+  });
+
+
     const tbody = document.getElementById("tablaUsuarios").getElementsByTagName("tbody")[0];
     const usuarioLogueadoSpan = document.getElementById("usuario-logueado");
     let idEditando = null;
+    let usuarios = [];
 
     function mostrarOpcionesPermitidas(rolUsuario) {
       const links = document.querySelectorAll('.sidebar a');
@@ -135,9 +177,18 @@
 
     async function obtenerUsuarios() {
       const snapshot = await getDocs(collection(db, "usuarios"));
+      usuarios = [];
       tbody.innerHTML = '';
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        usuarios.push({ id: docSnap.id, ...data });
+      });
+      mostrarUsuarios(usuarios);
+    }
+
+        function mostrarUsuarios(lista) {
+      tbody.innerHTML = '';
+      lista.forEach(data => {
         const row = tbody.insertRow();
         row.innerHTML = `
           <td>${data.nombre}</td>
@@ -146,10 +197,34 @@
           <td>${data.rol}</td>
           <td>${data.estado}</td>
           <td>
-            <span class="icon" onclick="editarUsuario('${docSnap.id}')">✏️</span>
-            <span class="icon" onclick="eliminarUsuario('${docSnap.id}')">🗑️</span>
+            <span class="icon" onclick="editarUsuario('${data.id}')">✏️</span>
+            <span class="icon" onclick="eliminarUsuario('${data.id}')">🗑️</span>
           </td>`;
       });
+    }
+
+    window.filtrarUsuarios = function() {
+      const texto = document.getElementById("busquedaUsuario").value.trim().toLowerCase();
+      const filtrados = usuarios.filter(u =>
+        u.nombre.toLowerCase().includes(texto) ||
+        u.correo.toLowerCase().includes(texto)
+      );
+      mostrarUsuarios(filtrados);
+    };
+
+    window.editarUsuario = async function(uid) {
+      const snap = await getDoc(doc(db, "usuarios", uid));
+      if (!snap.exists()) return;
+      const data = snap.data();
+      document.getElementById('nombre').focus();
+      document.getElementById("nombre").value = data.nombre;
+      document.getElementById("email").value = data.correo;
+      document.getElementById("telefono").value = data.telefono;
+      document.getElementById("rol").value = data.rol;
+      document.getElementById("estado").value = data.estado;
+      document.getElementById("password").value = data.password ? data.password : "";
+      idEditando = uid;
+      document.getElementById("btnRegistrar").textContent = "Actualizar Usuario";
     }
 
     window.eliminarUsuario = async function(uid) {
@@ -176,67 +251,148 @@
       });
     }
 
-    window.editarUsuario = async function(uid) {
-      const snap = await getDoc(doc(db, "usuarios", uid));
-      if (!snap.exists()) return;
-      const data = snap.data();
-      document.getElementById("nombre").value = data.nombre;
-      document.getElementById("email").value = data.correo;
-      document.getElementById("telefono").value = data.telefono;
-      document.getElementById("rol").value = data.rol;
-      document.getElementById("estado").value = data.estado;
-      idEditando = uid;
+document.getElementById("btnRegistrar").addEventListener("click", async () => {
+  const nombre = document.getElementById("nombre").value.trim();
+  const correo = document.getElementById("email").value.trim();
+  const telefono = document.getElementById("telefono").value.trim();
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirmPassword").value; 
+  const rol = document.getElementById("rol").value;
+  const estado = document.getElementById("estado").value;
+
+  // Validaciones JS y SweetAlert
+  if (!nombre || !correo || !telefono || (!idEditando && !password) || !rol || !estado) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Campos incompletos',
+      text: 'Por favor, completa todos los campos obligatorios.'
+    });
+    return;
+  }
+
+  if (nombre.length < 3) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Nombre muy corto',
+      text: 'El nombre debe tener al menos 3 caracteres.'
+    });
+    return;
+  }
+
+  // Verificar si ya existe un usuario con el mismo nombre (ignorando mayúsculas/minúsculas y espacios)
+  const nombreNormalizado = nombre.trim().toLowerCase();
+  const existeNombre = usuarios.some(u => 
+    u.nombre.trim().toLowerCase() === nombreNormalizado && u.id !== idEditando
+  );
+  if (existeNombre) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Nombre duplicado',
+      text: 'Ya existe un usuario registrado con ese nombre. Por favor, elige otro nombre.'
+    });
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Correo inválido',
+      text: 'Por favor, ingresa un correo electrónico válido.'
+    });
+    return;
+  }
+
+  if (!/^[0-9]{8,15}$/.test(telefono)) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Teléfono inválido',
+      text: 'El teléfono debe tener entre 8 y 15 dígitos numéricos.'
+    });
+    return;
+  }
+
+  if (!idEditando || (idEditando && password.length > 0)) {
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?`~]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Contraseña insegura',
+        text: 'La contraseña debe tener al menos 8 caracteres, incluir letras, números y símbolos.'
+      });
+      return;
     }
+  }
 
-    document.getElementById("btnRegistrar").addEventListener("click", async () => {
-      const nombre = document.getElementById("nombre").value.trim();
-      const correo = document.getElementById("email").value.trim();
-      const telefono = document.getElementById("telefono").value.trim();
-      const password = document.getElementById("password").value;
-      const rol = document.getElementById("rol").value;
-      const estado = document.getElementById("estado").value;
+  if (!idEditando || (idEditando && password.length > 0)) {
+    if (password !== confirmPassword) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Contraseñas no coinciden',
+        text: 'La contraseña y la confirmación no son iguales.'
+      });
+      return;
+    }
+  }
 
-      if (!nombre || !correo || !telefono || (!idEditando && !password) || !rol || !estado) {
-        mensaje.textContent = "⚠️ Todos los campos son obligatorios.";
-        mensaje.style.color = "red";
-        return;
-      }
-
-      try {
-        if (idEditando) {
-          await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
-          mensaje.textContent = "✅ Usuario actualizado correctamente.";
-        } else {
-          const cred = await createUserWithEmailAndPassword(auth, correo, password);
-          const uid = cred.user.uid;
-          await setDoc(doc(db, "usuarios", uid), { nombre, correo, telefono, rol, estado });
-          mensaje.textContent = "✅ Usuario creado correctamente.";
-        }
-
-        mensaje.style.color = "green";
-        obtenerUsuarios();
-        idEditando = null;
-        document.getElementById("nombre").value = "";
-        document.getElementById("email").value = "";
-        document.getElementById("telefono").value = "";
-        document.getElementById("password").value = "";
-        document.getElementById("rol").value = "";
-        document.getElementById("estado").value = "";
-
-      } catch (error) {
-        console.error("Error al guardar usuario:", error);
-        mensaje.textContent = "❌ Error al guardar usuario.";
-        mensaje.style.color = "red";
-      }
+  if (!rol) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Rol no seleccionado',
+      text: 'Debes seleccionar un rol para el usuario.'
     });
+    return;
+  }
 
-    const links = document.querySelectorAll('.sidebar a');
-    const currentPage = window.location.pathname.split("/").pop();
-    links.forEach(link => {
-      if (link.getAttribute("href") === currentPage) {
-        link.classList.add("active");
-      }
+  if (!estado) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Estado no seleccionado',
+      text: 'Debes seleccionar el estado del usuario.'
     });
+    return;
+  }
+
+  try {
+if (idEditando) {
+  await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
+  Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
+} else {
+  const confirm = await Swal.fire({
+    icon: 'warning',
+    title: 'Se cerrará la sesión',
+    html: 'Al crear un usuario, tu sesión actual se cerrará y deberás ingresar de nuevo.<br><br>¿Deseas continuar?',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, crear usuario',
+    cancelButtonText: 'Cancelar'
+  });
+  if (!confirm.isConfirmed) return;
+
+  const cred = await createUserWithEmailAndPassword(auth, correo, password);
+  const uid = cred.user.uid;
+  await setDoc(doc(db, "usuarios", uid), { nombre, correo, telefono, rol, estado });
+
+  // Cierra sesión y redirige inmediatamente
+  await auth.signOut();
+  window.location.href = "index.html";
+  return;
+}
+
+    obtenerUsuarios();
+    document.getElementById("nombre").value = "";
+    document.getElementById("email").value = "";
+    document.getElementById("telefono").value = "";
+    document.getElementById("password").value = "";
+    document.getElementById("confirmPassword").value = "";
+    document.getElementById("rol").value = "";
+    document.getElementById("estado").value = "";
+    document.getElementById("btnRegistrar").textContent = "Guardar Usuario";
+    idEditando = null;
+
+  } catch (error) {
+    console.error("Error al guardar usuario:", error);
+    Swal.fire('¡Error!', 'No se pudo guardar el usuario.', 'error');
+  }
+});
   </script>
 </body>
 </html>

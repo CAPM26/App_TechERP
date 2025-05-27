@@ -610,3 +610,27 @@
 #formularioNuevoCliente input {
   margin-bottom: 10px;
 }
+
+  /* Botón de mostrar contraseña discreto, alineado al input */
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    margin-bottom: 0.5em;
+  }
+  #togglePassword, #toggleConfirmPassword{
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: #555;
+    padding: 0 0.3em;
+    transition: color 0.2s;
+  }
+  #togglePassword:active,
+  #togglePassword:focus,
+  #toggleConfirmPassword:active,
+  #toggleConfirmPassword:focus {
+    color: #1976d2;
+    outline: none;
+  }

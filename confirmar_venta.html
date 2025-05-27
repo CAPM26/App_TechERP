@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmar Venta - ERP</title>
+  <link rel="stylesheet" href="/static/lateral.css" />
+  <style>
+    #sugerenciasClientes {
+      display: none;
+      position: absolute;
+      width: 300px;
+      z-index: 999;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    #sugerenciasClientes thead {
+      background-color: #f1f1f1;
+    }
+
+    #sugerenciasClientes th,
+    #sugerenciasClientes td {
+      padding: 5px;
+      text-align: left;
+    }
+
+    #sugerenciasClientes tbody tr {
+      cursor: pointer;
+    }
+
+    #sugerenciasClientes tbody tr:hover {
+      background-color: #e6f7ff;
+    }
+
+    .mensaje.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .mensaje.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .form-row {
+      margin: 10px 0;
+      position: relative;
+    }
+
+    #cuotasWrapper {
+      display: none;
+      margin-top: 10px;
+    }
+
+    #pagoMensual {
+      font-weight: bold;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-column">
+      <span id="usuario-logueado">Bienvenido</span><br>
+      <span id="rol-logueado">Rol: </span><br>
+      <span id="fecha-hoy"></span>
+    </div>
+    <div class="header-column center-column">
+      <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
+    </div>
+    <div class="header-column right-column">
+      <a href="index.html" class="logout" onclick="ventas.cerrarSesion()">Cerrar sesión</a>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="sidebar">
+      <h2>Mi ERP</h2>
+      <ul>
+        <li><a href="dashboard.html">Inicio</a></li>
+        <li><a href="caja.html">Caja</a></li>
+        <li><a href="compras.html">Compras</a></li>
+        <li><a href="inventario.html">Inventario</a></li>
+        <li><a href="reportes.html">Reportes</a></li>
+        <li><a href="usuarios.html">Usuarios</a></li>
+        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+        <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
+
+
+      </ul>
+    </div>
+
+    <div class="main">
+      <h1>Confirmar Venta</h1>
+
+      <table id="tablaResumen">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3"><strong>Total:</strong></td>
+            <td id="totalVenta">Q0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="form-row" id="seccionBusquedaCliente" style="display: none;">
+        <label for="buscarCliente"><strong>Buscar Cliente:</strong></label><br>
+        <input type="text" id="buscarCliente" placeholder="Escriba el nombre del cliente" style="width: 300px;" />
+        <table id="sugerenciasClientes">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>NIT</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p id="sinCoincidencias" style="display: none; color: #c00; margin-top: 5px;">
+          ❌ Cliente no encontrado. <button id="btnMostrarFormularioNuevoCliente">Agregar nuevo cliente</button>
+        </p>
+      </div>
+
+      <div class="form-row" id="formularioNuevoCliente" style="display: none; flex-direction: column;">
+        <label><strong>Nuevo Cliente:</strong></label>
+        <input type="text" id="nuevoClienteNombre" placeholder="Nombre completo del cliente" style="width: 300px;" />
+        <input type="text" id="nuevoClienteNIT" placeholder="NIT del cliente" style="width: 200px;" />
+        <input type="number" id="nuevoClienteCredito" placeholder="Crédito autorizado (opcional)" style="width: 200px;" />
+        <button id="btnGuardarNuevoCliente">Guardar Cliente</button>
+      </div>
+
+      <div class="form-row" id="seccionNombreContado" style="display: none;">
+        <label for="nombreContado"><strong>Nombre del cliente (contado):</strong></label>
+        <input type="text" id="nombreContado" placeholder="Ej: Cliente Mostrador" style="width: 300px; margin-left: 10px;" />
+      </div>
+
+      <div class="form-row">
+        <label for="clienteNIT"><strong>NIT del cliente:</strong></label>
+        <input type="text" id="clienteNIT" placeholder="1234567-8" style="width: 200px; margin-right: 10px;" readonly />
+        <label><input type="checkbox" id="usarCF" /> Usar CF</label>
+      </div>
+
+      <div class="form-row">
+        <label for="formaPago"><strong>Forma de Pago:</strong></label>
+        <select id="formaPago">
+          <option value="contado">Contado</option>
+          <option value="credito">Crédito</option>
+          <option value="cuotas">Cuotas</option>
+        </select>
+      </div>
+
+      <div class="form-row" id="cuotasWrapper" style="display: none;">
+        <label for="numCuotas"><strong>Número de cuotas:</strong></label>
+        <select id="numCuotas" style="width: 100px;">
+          <option value="">Selecciona</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+        </select>
+        <span id="pagoMensual"></span>
+      </div>
+
+      <div class="form-row">
+        <button id="btnConfirmarVenta">Confirmar Venta</button>
+        <button onclick="window.location.href='ventas.html'">⬅️ Volver a Ventas</button>
+      </div>
+
+      <p id="mensaje" class="mensaje"></p>
+
+      <div id="factura" style="display: none;">
+        <div class="factura-container">
+          <div class="factura-header">
+            <div class="empresa">
+              <h1 id="empresaNombre">Mi Empresa</h1>
+              <p><strong>NIT:</strong> <span id="empresaNIT">-</span></p>
+              <p id="empresaDireccion">Dirección</p>
+              <p><strong>Tel:</strong> <span id="empresaTelefono">-</span></p>
+            </div>
+            <div class="fecha-factura" style="text-align: right;">
+              <h2 style="margin: 0;">Factura</h2>
+              <p><strong>Fecha:</strong> <span id="facturaFecha"></span></p>
+              <p><strong>Cliente:</strong> <span id="facturaClienteNombre">C/F</span></p>
+              <p><strong>NIT Cliente:</strong> <span id="facturaClienteNIT">C/F</span></p>
+            </div>
+          </div>
+
+          <table class="factura-tabla">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio Unitario</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody id="facturaBody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3"><strong>Total</strong></td>
+                <td id="facturaTotal">Q0.00</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <p class="agradecimiento">Gracias por su preferencia. ¡Vuelva pronto!</p>
+
+          <div class="factura-botones no-print">
+            <button onclick="window.print()">🖨️ Imprimir factura</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./ventas.js"></script>
+</body>
+</html>

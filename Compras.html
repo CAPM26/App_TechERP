@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Compras - ERP</title>
-  <link rel="stylesheet" href="/static/lateral.css">
-
+  <title>Registrar Compras</title>
+  <link rel="stylesheet" href="/static/lateral.css" />
+  <style>
+    /* [ESTILOS IGUAL QUE ANTES] */
+  </style>
 </head>
 <body>
+
   <div class="header">
     <div class="header-column"><span class="left-text" id="usuario-logueado">Bienvenido</span></div>
     <div class="header-column center-column">
       <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
     </div>
     <div class="header-column right-column">
-      <a href="#" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
+      <a href="index.html" class="logout">Cerrar sesión</a>
     </div>
   </div>
 
@@ -22,233 +25,304 @@
     <div class="sidebar">
       <h2>Mi ERP</h2>
       <ul>
-        <li><a href="dashboard.html" data-rol="todos">Inicio</a></li>
-        <li><a href="ventas.html" data-rol="Administrador,Vendedor,Bodega">Ventas</a></li>
-        <li><a href="compras.html" data-rol="Administrador,Bodega">Compras</a></li>
-        <li><a href="inventario.html" data-rol="Administrador,Bodega">Inventario</a></li>
-        <li><a href="reportes.html" data-rol="Administrador,Bodega">Reportes</a></li>
-        <li><a href="usuarios.html" data-rol="Administrador">Usuarios</a></li>
+        <li><a href="dashboard.html">Inicio</a></li>
+        <li><a href="caja.html">Caja</a></li>
+        <li><a href="compras.html">Compras</a></li>
+        <li><a href="inventario.html">Inventario</a></li>
+        <li><a href="reportes.html">Reportes</a></li>
+        <li><a href="usuarios.html">Usuarios</a></li>
+        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+        <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
+
+
       </ul>
     </div>
 
     <div class="main">
       <h1>Registrar Compra</h1>
-      <div class="card">
-        <input type="text" id="nombreProducto" placeholder="Nombre del producto">
-        <input type="number" id="cantidadCompra" placeholder="Cantidad comprada">
-        <input type="number" id="precioCompra" placeholder="Precio unitario">
-        <input type="text" id="imagenCompra" placeholder="URL de imagen (opcional)">
-        <input type="number" id="cantidadAlerta" placeholder="Cantidad mínima para alerta">
-        <input type="text" id="proveedor" placeholder="Nombre del proveedor">
-        <button id="btnRegistrarCompra">Registrar compra</button>
-        <p id="mensajeCompra"></p>
+      <form id="formCompra" class="card" onsubmit="return false;">
+        <label for="producto">Producto: *</label>
+        <input type="text" id="producto" placeholder="Ej. Teclado gamer" autocomplete="off" required />
+        <div id="sugerencias" class="autocomplete-suggestions"></div>
+
+        <label for="cantidad">Cantidad comprada: *</label>
+        <input type="number" id="cantidad" placeholder="Ej. 50" min="1" required />
+
+        <label for="precioCompra">Precio de compra (Q): *</label>
+        <input type="number" id="precioCompra" placeholder="Ej. 60.00" min="0.01" step="0.01" required />
+
+        <label for="precioVenta">Precio de venta (Q): *</label>
+        <input type="number" id="precioVenta" placeholder="Ej. 85.00" min="0.01" step="0.01" required />
+
+        <label for="proveedor">Proveedor:</label>
+        <input type="text" id="proveedor" placeholder="Ej. Distribuidora XYZ" />
+
+        <label for="alerta">Alerta de stock mínimo:</label>
+        <input type="number" id="alerta" placeholder="Ej. 10" min="0" />
+
+        <label for="imagen">URL de imagen del producto:</label>
+        <input type="url" id="imagen" placeholder="https://..." />
+
+        <button id="btnGuardar">Guardar compra</button>
+        <p id="mensajeCompra" class="mensaje"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalComparacion" class="modal">
+    <div class="modal-content">
+      <span class="close" id="cerrarComparacion">&times;</span>
+      <h3>⚠️ El producto ya existe</h3>
+      <p>¿Deseas actualizar los datos o conservar los actuales?</p>
+      <table>
+        <thead><tr><th>Campo</th><th>Actual</th><th>Nuevo</th></tr></thead>
+        <tbody id="tablaComparacion"></tbody>
+      </table>
+      <div>
+        <button id="btnActualizarDatos">Actualizar</button>
+        <button id="btnConservarDatos">Conservar</button>
       </div>
+    </div>
+  </div>
 
-      <h2>Reporte de Compras</h2>
-      <table id="tablaCompras">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Precio Unitario</th>
-            <th>Proveedor</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <h2>Filtrar Inventario</h2>
-      <input type="text" id="busquedaProducto" placeholder="Buscar por nombre" oninput="filtrarInventario()">
-
-      <h2>Inventario Actual</h2>
-      <table id="tablaInventario">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Cantidad</th>
-            <th>Precio</th>
-            <th>Alerta</th>
-            <th>Proveedor</th>
-            <th>Imagen</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+  <div id="modalInfo" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('modalInfo').style.display='none'">&times;</span>
+      <p id="modalTexto"></p>
     </div>
   </div>
 
   <script type="module">
-    import { db } from './firebase.js';
-    import { collection, addDoc, getDocs, doc, updateDoc, query, where, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import {
+      db,
+      collection,
+      getDocs,
+      addDoc,
+      updateDoc,
+      doc
+    } from './firebase.js';
 
-    const auth = getAuth();
-    const spanUsuario = document.getElementById("usuario-logueado");
+    const uid = localStorage.getItem("uid");
+    const usuario = localStorage.getItem("usuario");
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-
-      const uid = user.uid;
-      const userDoc = await getDoc(doc(db, "usuarios", uid));
-
-      if (!userDoc.exists()) {
-        alert("⚠️ Tu perfil no está registrado.");
-        window.location.href = "index.html";
-        return;
-      }
-
-      const data = userDoc.data();
-      const nombre = data.nombre || "Usuario";
-      const rol = (data.rol || "Desconocido").trim();
-
-      spanUsuario.textContent = `Bienvenido, ${nombre}`;
-
-      // Mostrar solo links permitidos
-      const enlaces = document.querySelectorAll(".sidebar a");
-      enlaces.forEach(link => {
-        const roles = link.getAttribute("data-rol");
-        if (roles !== "todos" && !roles.includes(rol)) {
-          link.parentElement.style.display = "none";
-        }
-      });
-
-      // Si el usuario no tiene permisos para esta página
-      const permitido = ["Administrador", "Bodega"];
-      if (!permitido.includes(rol)) {
-        alert("⚠️ No tienes permisos para acceder a esta página.");
-        window.location.href = "dashboard.html";
-        return;
-      }
-    });
-
-    window.cerrarSesion = function () {
-      localStorage.removeItem("usuario");
+    if (!uid || !usuario) {
       window.location.href = "index.html";
+    } else {
+      document.getElementById("usuario-logueado").textContent = `Bienvenido, ${usuario}`;
     }
 
-    const comprasRef = collection(db, "compras");
-    const inventarioRef = collection(db, "inventario");
+    const productoInput = document.getElementById("producto");
+    const cantidadInput = document.getElementById("cantidad");
+    const precioCompraInput = document.getElementById("precioCompra");
+    const precioVentaInput = document.getElementById("precioVenta");
+    const proveedorInput = document.getElementById("proveedor");
+    const alertaInput = document.getElementById("alerta");
+    const imagenInput = document.getElementById("imagen");
+    const mensaje = document.getElementById("mensajeCompra");
+    const btnGuardar = document.getElementById("btnGuardar");
+    const sugerenciasDiv = document.getElementById("sugerencias");
 
-    const tablaComprasBody = document.querySelector("#tablaCompras tbody");
-    const tablaInventarioBody = document.querySelector("#tablaInventario tbody");
+    const modalTexto = document.getElementById("modalTexto");
+    const modalComparacion = document.getElementById("modalComparacion");
+    const cerrarComparacion = document.getElementById("cerrarComparacion");
 
-    document.getElementById("btnRegistrarCompra").addEventListener("click", async () => {
-      const nombre = document.getElementById("nombreProducto").value.trim();
-      const cantidad = parseInt(document.getElementById("cantidadCompra").value);
-      const precio = parseFloat(document.getElementById("precioCompra").value);
-      const imagen = document.getElementById("imagenCompra").value.trim();
-      const alerta = parseInt(document.getElementById("cantidadAlerta").value);
-      const proveedor = document.getElementById("proveedor").value.trim();
-      const mensaje = document.getElementById("mensajeCompra");
+    let inventarioCache = [];
+    let productoExistenteGlobal = null;
+    let nuevosDatosGlobal = null;
 
-      if (!nombre || isNaN(cantidad) || isNaN(precio) || !proveedor) {
-        mensaje.textContent = "⚠️ Todos los campos son obligatorios.";
+    cerrarComparacion.onclick = () => modalComparacion.style.display = "none";
+    window.onclick = e => {
+      if (e.target === modalComparacion) modalComparacion.style.display = "none";
+    };
+
+    function mostrarModal(texto) {
+      modalTexto.textContent = texto;
+      document.getElementById("modalInfo").style.display = "block";
+    }
+
+    function mostrarComparacion(antiguo, nuevo) {
+      productoExistenteGlobal = antiguo;
+      nuevosDatosGlobal = nuevo;
+
+      const tabla = document.getElementById("tablaComparacion");
+      tabla.innerHTML = "";
+
+      const campos = ["cantidad", "precioCompra", "precio", "proveedor", "alerta", "imagen"];
+      const etiquetas = {
+        cantidad: "Cantidad",
+        precioCompra: "Precio compra",
+        precio: "Precio venta",
+        proveedor: "Proveedor",
+        alerta: "Alerta",
+        imagen: "Imagen"
+      };
+
+      campos.forEach(campo => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+  <td>${etiquetas[campo]}</td>
+  <td>${antiguo[campo] ?? "-"}</td>
+  <td>${nuevo[campo] ?? "-"}</td>
+  <td>${campo === "cantidad" 
+    ? "✔️ (automático)" 
+    : `<input type="checkbox" data-campo="${campo}" checked>`}</td>
+`;
+        tabla.appendChild(fila);
+      });
+
+      modalComparacion.style.display = "block";
+    }
+
+    document.getElementById("btnConservarDatos").onclick = () => {
+      modalComparacion.style.display = "none";
+      mostrarModal("✅ Se conservaron los datos originales del inventario.");
+    };
+
+    document.getElementById("btnActualizarDatos").onclick = async () => {
+      const id = productoExistenteGlobal.id;
+      try {
+        await updateDoc(doc(db, "inventario", id), nuevosDatosGlobal);
+        modalComparacion.style.display = "none";
+        mostrarModal("✅ Datos del producto actualizados exitosamente.");
+        await cargarInventario();
+      } catch (err) {
+        console.error(err);
+        mensaje.textContent = "❌ Error al actualizar el producto.";
+        mensaje.classList.add("error");
+      }
+    };
+
+    async function cargarInventario() {
+      const snapshot = await getDocs(collection(db, "inventario"));
+      inventarioCache = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      console.log("Inventario cargado:", inventarioCache); // Útil para depuración
+      sugerenciasDiv.style.display = "none";
+    }
+
+    productoInput.addEventListener("input", () => {
+      const texto = productoInput.value.trim().toLowerCase();
+      sugerenciasDiv.innerHTML = "";
+
+      if (texto.length === 0) {
+        sugerenciasDiv.style.display = "none";
         return;
       }
 
-      const fecha = new Date().toLocaleString();
-      await addDoc(comprasRef, { nombre, cantidad, precio, proveedor, fecha });
+      const filtrados = inventarioCache.filter(p => {
+        const nombre = p.nombre.toLowerCase();
+        const palabras = nombre.split(" ");
+        return palabras.some(palabra => palabra.startsWith(texto));
+      }).slice(0, 5);
 
-      const q = query(inventarioRef, where("nombre", "==", nombre));
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        const docExistente = snapshot.docs[0];
-        const nuevaCantidad = docExistente.data().cantidad + cantidad;
-        await updateDoc(doc(db, "inventario", docExistente.id), {
-          cantidad: nuevaCantidad,
-          precio,
-          imagen: imagen || docExistente.data().imagen || "",
-          alerta: docExistente.data().alerta || alerta || 0,
-          proveedor: proveedor || docExistente.data().proveedor || ""
-        });
-      } else {
-        await addDoc(inventarioRef, {
-          nombre,
-          cantidad,
-          precio,
-          imagen: imagen || "",
-          alerta: alerta || 0,
-          proveedor
-        });
+      if (filtrados.length === 0) {
+        sugerenciasDiv.style.display = "none";
+        return;
       }
 
-      mensaje.textContent = "✅ Compra registrada y producto actualizado en inventario.";
+      filtrados.forEach(producto => {
+        const div = document.createElement("div");
+        div.textContent = producto.nombre;
+        div.addEventListener("click", () => {
+          productoInput.value = producto.nombre;
+          sugerenciasDiv.innerHTML = "";
+          sugerenciasDiv.style.display = "none";
+        });
+        sugerenciasDiv.appendChild(div);
+      });
 
-      document.getElementById("nombreProducto").value = "";
-      document.getElementById("cantidadCompra").value = "";
-      document.getElementById("precioCompra").value = "";
-      document.getElementById("imagenCompra").value = "";
-      document.getElementById("cantidadAlerta").value = "";
-      document.getElementById("proveedor").value = "";
-
-      mostrarCompras();
-      mostrarInventario();
+      sugerenciasDiv.style.display = "block";
     });
 
-    async function mostrarCompras() {
-      const snapshot = await getDocs(comprasRef);
-      tablaComprasBody.innerHTML = "";
-      snapshot.forEach(doc => {
-        const { nombre, cantidad, precio, proveedor, fecha } = doc.data();
-        const row = tablaComprasBody.insertRow();
-        row.innerHTML = `
-          <td>${nombre}</td>
-          <td>${cantidad}</td>
-          <td>${precio}</td>
-          <td>${proveedor}</td>
-          <td>${fecha}</td>
-        `;
-      });
-    }
+    document.addEventListener("click", (e) => {
+      if (!sugerenciasDiv.contains(e.target) && e.target !== productoInput) {
+        sugerenciasDiv.innerHTML = "";
+        sugerenciasDiv.style.display = "none";
+      }
+    });
 
-    async function mostrarInventario() {
-      const snapshot = await getDocs(inventarioRef);
-      tablaInventarioBody.innerHTML = "";
-      snapshot.forEach(doc => {
-        const { nombre, cantidad, precio, imagen, alerta, proveedor } = doc.data();
-        const row = tablaInventarioBody.insertRow();
-        if (alerta && cantidad <= alerta) row.classList.add("alerta-stock");
-        row.innerHTML = `
-          <td>${nombre}</td>
-          <td>${cantidad}</td>
-          <td>${precio}</td>
-          <td>${alerta}</td>
-          <td>${proveedor}</td>
-          <td><img src="${imagen || ''}" width="50"></td>
-        `;
-      });
-    }
+    btnGuardar.addEventListener("click", async () => {
+      mensaje.textContent = "";
+      mensaje.classList.remove("ok", "error");
 
-    window.filtrarInventario = async function () {
-      const texto = document.getElementById("busquedaProducto").value.trim().toLowerCase();
-      const snapshot = await getDocs(inventarioRef);
-      tablaInventarioBody.innerHTML = "";
+      const nombre = productoInput.value.trim();
+      const nombreLower = nombre.toLowerCase();
+      const cantidad = parseInt(cantidadInput.value);
+      const precioCompra = parseFloat(precioCompraInput.value);
+      const precioVenta = parseFloat(precioVentaInput.value);
+      const proveedor = proveedorInput.value.trim();
+      const alerta = parseInt(alertaInput.value) || 0;
+      const imagen = imagenInput.value.trim();
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.nombre.toLowerCase().includes(texto)) {
-          const row = tablaInventarioBody.insertRow();
-          if (data.alerta && data.cantidad <= data.alerta) row.classList.add("alerta-stock");
-          row.innerHTML = `
-            <td>${data.nombre}</td>
-            <td>${data.cantidad}</td>
-            <td>${data.precio}</td>
-            <td>${data.alerta}</td>
-            <td>${data.proveedor}</td>
-            <td><img src="${data.imagen || ''}" width="50"></td>
-          `;
+      if (!nombre || isNaN(cantidad) || isNaN(precioCompra) || isNaN(precioVenta)) {
+        mensaje.textContent = "⚠️ Completa todos los campos obligatorios.";
+        mensaje.classList.add("error");
+        return;
+      }
+
+      if (precioVenta < precioCompra) {
+        mensaje.textContent = "⚠️ El precio de venta no puede ser menor al de compra.";
+        mensaje.classList.add("error");
+        return;
+      }
+
+      try {
+        const inventarioRef = collection(db, "inventario");
+        let productoExistente = inventarioCache.find(p => p.nombre.toLowerCase() === nombreLower);
+
+        if (productoExistente) {
+          const nuevaCantidad = (productoExistente.cantidad || 0) + cantidad;
+          const nuevosDatos = {
+            cantidad: nuevaCantidad,
+            precio: precioVenta,
+            precioCompra,
+            proveedor,
+            alerta,
+            imagen
+          };
+          mostrarComparacion(productoExistente, nuevosDatos);
+        } else {
+          await addDoc(inventarioRef, {
+            nombre: nombreLower,
+            cantidad,
+            precio: precioVenta,
+            precioCompra,
+            proveedor,
+            alerta,
+            imagen
+          });
+          mostrarModal("✅ Nuevo producto agregado al inventario.");
         }
-      });
-    }
 
-    mostrarCompras();
-    mostrarInventario();
-</script>
+        await addDoc(collection(db, "compras"), {
+          nombre: nombreLower,
+          cantidad,
+          precioCompra,
+          precioVenta,
+          proveedor,
+          alerta,
+          imagen,
+          totalCompra: (cantidad * precioCompra).toFixed(2),
+          fecha: new Date(),
+          usuario
+        });
+
+        document.getElementById("formCompra").reset();
+        sugerenciasDiv.innerHTML = "";
+        sugerenciasDiv.style.display = "none";
+        await cargarInventario();
+      } catch (err) {
+        console.error(err);
+        mensaje.textContent = "❌ Error al registrar la compra.";
+        mensaje.classList.add("error");
+      }
+    });
+
+    // ⚠️ Muy importante: carga el inventario al final
+    await cargarInventario();
+  </script>
 
 </body>
 </html>

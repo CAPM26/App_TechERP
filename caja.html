@@ -5,16 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Caja - ERP</title>
   <link rel="stylesheet" href="/static/lateral.css">
-
 </head>
 <body>
 
   <div class="header">
-    <div class="header-column"><span class="left-text" id="usuario-logueado">Bienvenido</span></div>
+    <div class="header-column">
+      <span id="usuario-logueado">Bienvenido</span>
+      <br>
+      <span id="rol-logueado">Rol: </span>
+      <br>
+      <span id="fecha-hoy"></span>
+    </div>
     <div class="header-column center-column">
       <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
     </div>
     <div class="header-column right-column">
+      <a href="#" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
+    </div>
+     <div class="header-column right-column">
       <a href="#" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
     </div>
   </div>
@@ -24,13 +32,18 @@
       <h2>Mi ERP</h2>
       <ul>
         <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="ventas.html">Ventas</a></li>
+        <li><a href="caja.html">Caja</a></li>
         <li><a href="compras.html">Compras</a></li>
         <li><a href="inventario.html">Inventario</a></li>
         <li><a href="reportes.html">Reportes</a></li>
         <li><a href="usuarios.html">Usuarios</a></li>
-        <li><a href="caja.html">Caja</a></li>
+        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+        <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
+
       </ul>
+
+
+      
     </div>
 
     <div class="main">
@@ -68,12 +81,16 @@
 
     const usuario = localStorage.getItem("usuario");
     const uid = localStorage.getItem("uid");
+    const rol = (localStorage.getItem("rol") || "").trim();
 
     if (!usuario || !uid) {
       window.location.href = "index.html";
     } else {
       const nombreCapitalizado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
       document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombreCapitalizado}`;
+      document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
+      const hoy = new Date();
+document.getElementById("fecha-hoy").textContent = hoy.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
     }
 
     window.cerrarSesion = function () {
@@ -99,9 +116,14 @@
       );
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
-        estadoCaja.textContent = "✅ Caja abierta";
+        estadoCaja.textContent = "✅ Caja abierta. Redirigiendo a ventas...";
         btnAbrirCaja.style.display = "none";
         accesoVentas.style.display = "block";
+
+        // 🔁 Redireccionar automáticamente a ventas después de 1 segundo
+        setTimeout(() => {
+          window.location.href = "ventas.html";
+        }, 1000);
       }
     }
 
@@ -139,6 +161,16 @@
     });
 
     verificarCajaAbierta();
+
+    // Marcar la opción activa en el sidebar
+    const links = document.querySelectorAll('.sidebar a');
+    const currentPage = window.location.pathname.split("/").pop();
+
+    links.forEach(link => {
+      if (link.getAttribute("href") === currentPage) {
+        link.classList.add("active");
+      }
+    });
   </script>
 </body>
 </html>

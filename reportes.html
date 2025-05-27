@@ -5,7 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reportes - ERP</title>
   <link rel="stylesheet" href="/static/reportes.css">
-  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
+  <style>
+    /* Mejorar aspecto de inputs de fecha */
+    .card input[type="date"] {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    .card label {
+      display: block;
+      font-weight: bold;
+      color: #007bff;
+      margin-bottom: 6px;
+      margin-top: 10px;
+      letter-spacing: 0.5px;
+      font-size: 1em;
+    }
+  </style>
 </head>
 <body>
   <!-- Encabezado -->
@@ -37,18 +59,17 @@
         <li><a href="usuarios.html">Usuarios</a></li>
         <li><a href="infofactura.html" class="active">Config. Factura</a></li>
         <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
-
-
       </ul>
     </div>
 
     <div class="main">
       <h1>Generar Reportes</h1>
       <div class="card">
+        <label for="fechaInicio">Fecha de Inicio</label>
         <input type="date" id="fechaInicio" required><br>
+        <label for="fechaFin">Fecha de Fin</label>
         <input type="date" id="fechaFin" required><br>
         <button id="btnGenerarReporte">Generar Reporte</button>
-        <p id="mensaje"></p>
       </div>
 
       <h2>Reporte de Ventas</h2>
@@ -57,7 +78,6 @@
           <tr>
             <th>Producto</th>
             <th>Cantidad</th>
-            <th>Precio (Q)</th>
             <th>Total (Q)</th>
             <th>Fecha</th>
           </tr>
@@ -71,7 +91,7 @@
           <tr>
             <th>Producto</th>
             <th>Cantidad</th>
-            <th>Precio (Q)</th>
+            <th>Precio Unitario (Q)</th>
             <th>Total (Q)</th>
             <th>Proveedor</th>
             <th>Fecha</th>
@@ -96,7 +116,7 @@
 <script type="module">
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -119,48 +139,91 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
   document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    const enlaces = document.querySelectorAll(".sidebar a");
-    enlaces.forEach(link => {
-      const ruta = link.getAttribute("href");
-      if (ruta === "usuarios.html" && rol !== "Administrador") link.parentElement.style.display = "none";
-      if (["compras.html", "inventario.html", "reportes.html"].includes(ruta) && !["Administrador", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
-      if (ruta === "ventas.html" && !["Administrador", "Vendedor", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
-    });
+  // Sidebar permisos
+  const enlaces = document.querySelectorAll(".sidebar a");
+  enlaces.forEach(link => {
+    const ruta = link.getAttribute("href");
+    if (ruta === "usuarios.html" && rol !== "Administrador") link.parentElement.style.display = "none";
+    if (["compras.html", "inventario.html", "reportes.html"].includes(ruta) && !["Administrador", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
+    if (ruta === "ventas.html" && !["Administrador", "Vendedor", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
+  });
 
-    const permitido = ["Administrador", "Bodega"];
-    if (!permitido.includes(rol)) {
-      alert("⚠️ No tienes permisos para acceder a esta página.");
-      window.location.href = "dashboard.html";
-      return;
-    }
-
-  window.cerrarSesion = function () {
-    localStorage.removeItem("usuario");
-    window.location.href = "index.html";
+  // Solo Administrador y Bodega pueden ver reportes
+  const permitido = ["Administrador", "Bodega"];
+  if (!permitido.includes(rol)) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Acceso denegado',
+      text: 'No tienes permisos para acceder a esta página.',
+      confirmButtonText: 'Ir al inicio'
+    }).then(() => window.location.href = "dashboard.html");
+    return;
   }
 
+  window.cerrarSesion = function () {
+    auth.signOut().then(() => window.location.href = "index.html");
+  }
+
+   // Restricciones de fechas: no permitir fechas futuras ni fin menor a inicio
+  const fechaInicioInput = document.getElementById('fechaInicio');
+  const fechaFinInput = document.getElementById('fechaFin');
+  const hoy = new Date().toISOString().split('T')[0];
+  fechaInicioInput.max = hoy;
+  fechaFinInput.max = hoy;
+
+  fechaInicioInput.addEventListener('change', () => {
+    fechaFinInput.min = fechaInicioInput.value;
+    if (fechaFinInput.value && fechaFinInput.value < fechaInicioInput.value) {
+      fechaFinInput.value = fechaInicioInput.value;
+    }
+  });
+
+  fechaFinInput.addEventListener('change', () => {
+    if (fechaFinInput.value < fechaInicioInput.value) {
+      fechaFinInput.value = fechaInicioInput.value;
+    }
+  });
+
   document.getElementById('btnGenerarReporte').addEventListener('click', async () => {
-    const fechaInicio = document.getElementById('fechaInicio').value;
-    const fechaFin = document.getElementById('fechaFin').value;
+    const fechaInicio = fechaInicioInput.value;
+    const fechaFin = fechaFinInput.value;
 
     if (!fechaInicio || !fechaFin) {
-      document.getElementById('mensaje').textContent = "⚠️ Ambas fechas son obligatorias.";
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fechas requeridas',
+        text: 'Debes seleccionar ambas fechas para generar el reporte.'
+      });
       return;
     }
 
-    const fechaInicioTimestamp = Timestamp.fromDate(new Date(fechaInicio));
+    if (fechaFin < fechaInicio) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Rango de fechas inválido',
+        text: 'La fecha final no puede ser menor que la fecha inicial.'
+      });
+      return;
+    }
+
+    // Timestamps para Firestore
+    const fechaInicioTimestamp = Timestamp.fromDate(new Date(fechaInicio + 'T00:00:00'));
     const fechaFinTimestamp = Timestamp.fromDate(new Date(fechaFin + 'T23:59:59'));
 
     try {
+      // Ventas filtradas por fecha
       const ventasRef = collection(db, "ventas");
       const ventasQuery = query(ventasRef, where("fecha", ">=", fechaInicioTimestamp), where("fecha", "<=", fechaFinTimestamp));
       const ventasSnapshot = await getDocs(ventasQuery);
       const ventas = ventasSnapshot.docs.map(doc => doc.data());
 
+      // Compras filtradas por fecha
       const comprasRef = collection(db, "compras");
-      const comprasSnapshot = await getDocs(comprasRef);
+      const comprasQuery = query(comprasRef, where("fecha", ">=", fechaInicioTimestamp), where("fecha", "<=", fechaFinTimestamp));
+      const comprasSnapshot = await getDocs(comprasQuery);
       const compras = comprasSnapshot.docs.map(doc => doc.data());
 
+      // Inventario completo
       const inventarioRef = collection(db, "inventario");
       const inventarioSnapshot = await getDocs(inventarioRef);
       const inventario = inventarioSnapshot.docs.map(doc => doc.data());
@@ -170,28 +233,33 @@ onAuthStateChanged(auth, async (user) => {
       mostrarInventario(inventario);
 
       if (ventas.length === 0 && compras.length === 0) {
-        document.getElementById("mensaje").textContent = "⚠️ No se encontraron registros en ese rango de fechas.";
-      } else {
-        document.getElementById("mensaje").textContent = "";
+        Swal.fire({
+          icon: 'info',
+          title: 'Sin resultados',
+          text: 'No se encontraron registros en ese rango de fechas.'
+        });
       }
 
     } catch (error) {
-      document.getElementById('mensaje').textContent = "❌ Error al generar los reportes.";
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ocurrió un error al generar los reportes.'
+      });
       console.error("Error al obtener reportes:", error);
     }
   });
 
-  function mostrarVentas(ventas) {
+ function mostrarVentas(ventas) {
     const tabla = document.getElementById("tablaVentas").getElementsByTagName('tbody')[0];
     tabla.innerHTML = '';
     ventas.forEach(venta => {
       const row = tabla.insertRow();
       row.innerHTML = `
-        <td>${venta.producto}</td>
-        <td>${venta.cantidad}</td>
-        <td>Q${venta.precio}</td>
-        <td>Q${venta.total}</td>
-        <td>${venta.fecha?.seconds ? new Date(venta.fecha.seconds * 1000).toLocaleString() : 'Sin fecha'}</td>
+        <td>${venta.producto || '-'}</td>
+        <td>${venta.cantidad ?? '-'}</td>
+        <td>Q${venta.total ?? '-'}</td>
+        <td>${venta.fecha?.seconds ? new Date(venta.fecha.seconds * 1000).toLocaleString('es-ES') : 'Sin fecha'}</td>
       `;
     });
   }
@@ -202,12 +270,12 @@ onAuthStateChanged(auth, async (user) => {
     compras.forEach(compra => {
       const row = tabla.insertRow();
       row.innerHTML = `
-        <td>${compra.nombre}</td>
-        <td>${compra.cantidad}</td>
-        <td>Q${compra.precio}</td>
-        <td>Q${(compra.precio * compra.cantidad).toFixed(2)}</td>
+        <td>${compra.nombre || '-'}</td>
+        <td>${compra.cantidad ?? '-'}</td>
+        <td>Q${compra.precioCompra ?? '-'}</td>
+        <td>Q${compra.totalCompra ?? (compra.precioCompra && compra.cantidad ? (parseFloat(compra.precioCompra) * parseFloat(compra.cantidad)).toFixed(2) : '-')}</td>
         <td>${compra.proveedor || "Sin proveedor"}</td>
-        <td>${compra.fecha || 'Sin fecha'}</td>
+        <td>${compra.fecha?.seconds ? new Date(compra.fecha.seconds * 1000).toLocaleString('es-ES') : 'Sin fecha'}</td>
       `;
     });
   }
@@ -218,20 +286,20 @@ onAuthStateChanged(auth, async (user) => {
     inventario.forEach(item => {
       const row = tabla.insertRow();
       row.innerHTML = `
-        <td>${item.nombre}</td>
-        <td>${item.cantidad}</td>
+        <td>${item.nombre || '-'}</td>
+        <td>${item.cantidad ?? '-'}</td>
       `;
     });
   }
-  // Marcar la opción activa en el sidebar
-    const links = document.querySelectorAll('.sidebar a');
-    const currentPage = window.location.pathname.split("/").pop(); // por ejemplo: "usuarios.html"
 
-    links.forEach(link => {
+  // Marcar la opción activa en el sidebar
+  const links = document.querySelectorAll('.sidebar a');
+  const currentPage = window.location.pathname.split("/").pop();
+  links.forEach(link => {
     if (link.getAttribute("href") === currentPage) {
       link.classList.add("active");
-      }
-    });
+    }
+  });
 });
 </script>
 

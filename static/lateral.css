@@ -365,7 +365,46 @@
 
 .chart-container {
   position: relative;
-  height: 200px;
+  height: 280px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.fullscreen-widget {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2000;
+  background: #fff;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2em 1em 1em 1em !important;
+}
+.fullscreen-widget .widget-header {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 1em auto;
+}
+.fullscreen-widget .widget-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fullscreen-widget .chart-container {
+  height: 70vh !important;
+  min-height: 400px;
+  width: 100% !important;
+  max-width: 1000px;
 }
 
 /* Products List */

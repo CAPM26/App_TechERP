@@ -185,13 +185,23 @@ onAuthStateChanged(auth, async (user) => {
       window.location.href = "index.html";
     };
 
-    window.toggleWidget = function (button) {
-      const widget = button.closest('.widget');
-      const content = widget.querySelector('.widget-content');
-      const visible = content.style.display !== 'none';
-      content.style.display = visible ? 'none' : 'block';
-      button.textContent = visible ? '+' : '−';
-    };
+window.toggleWidget = function (button) {
+  const widget = button.closest('.widget');
+  const isFullscreen = widget.classList.contains('fullscreen-widget');
+  // Quitar fullscreen de cualquier otro widget
+  document.querySelectorAll('.fullscreen-widget').forEach(w => {
+    w.classList.remove('fullscreen-widget');
+    const btn = w.querySelector('.toggle-btn');
+    if (btn) btn.textContent = '−';
+  });
+  if (!isFullscreen) {
+    widget.classList.add('fullscreen-widget');
+    button.textContent = '⤫'; // Cambia el icono a "cerrar"
+  } else {
+    widget.classList.remove('fullscreen-widget');
+    button.textContent = '−';
+  }
+};
 
     const ventasCollection = collection(db, "ventas");
     getDocs(ventasCollection).then((querySnapshot) => {
@@ -243,6 +253,61 @@ onAuthStateChanged(auth, async (user) => {
         }
       });
     });
+
+        // ...existing code...
+    
+        // Tendencia de ventas por día
+        getDocs(ventasCollection).then((querySnapshot) => {
+          const ventasPorDia = {};
+    
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (!data.fecha || !data.total) return;
+            const fecha = data.fecha.toDate();
+            const clave = fecha.toISOString().split('T')[0]; // yyyy-mm-dd
+            const totalVenta = parseFloat(data.total) || 0;
+            ventasPorDia[clave] = (ventasPorDia[clave] || 0) + totalVenta;
+          });
+    
+          const clavesOrdenadas = Object.keys(ventasPorDia).sort();
+          const etiquetas = clavesOrdenadas.map(fecha =>
+            new Date(fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' })
+          );
+          const totales = clavesOrdenadas.map(clave => ventasPorDia[clave]);
+    
+          new Chart(document.getElementById('tendenciaChart'), {
+            type: 'line',
+            data: {
+              labels: etiquetas,
+              datasets: [{
+                label: 'Ventas por Día',
+                data: totales,
+                fill: false,
+                borderColor: '#e67e22',
+                backgroundColor: '#e67e22',
+                tension: 0.2,
+                pointRadius: 3,
+                pointBackgroundColor: '#e67e22'
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: context => `Q ${context.raw.toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
+                  }
+                }
+              },
+              scales: {
+                x: { title: { display: true, text: 'Fecha' } },
+                y: { title: { display: true, text: 'Ventas (Q)' }, beginAtZero: true }
+              }
+            }
+          });
+        });
+    // ...existing code...
 
     getDocs(collection(db, "inventario")).then((querySnapshot) => {
       const categorias = {};

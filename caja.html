@@ -22,9 +22,6 @@
     <div class="header-column right-column">
       <a href="#" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
     </div>
-     <div class="header-column right-column">
-      <a href="#" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
-    </div>
   </div>
 
   <div class="content">
@@ -39,11 +36,7 @@
         <li><a href="usuarios.html">Usuarios</a></li>
         <li><a href="infofactura.html" class="active">Config. Factura</a></li>
         <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
-
       </ul>
-
-
-      
     </div>
 
     <div class="main">
@@ -74,111 +67,123 @@
   </div>
 
   <script type="module">
-   import { auth, db } from './firebase.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    import { auth, db } from './firebase.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import {
+      collection,
+      getDocs,
+      doc,
+      getDoc,
+      query,
+      where,
+      addDoc
+    } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "index.html";
-    return;
-  }
-
-  // Obtener datos del usuario desde Firestore
-  const ref = doc(db, "usuarios", user.uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    window.location.href = "index.html";
-    return;
-  }
-  const data = snap.data();
-  const nombre = data.nombre || "Usuario";
-  const rol = data.rol || "";
-
-  document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombre}`;
-  document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
-  document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
-  
-
-    window.cerrarSesion = function () {
-      localStorage.clear();
-      window.location.href = "index.html";
-    };
-
-    const btnAbrirCaja = document.getElementById("btnAbrirCaja");
-    const modalCaja = document.getElementById("modalCaja");
-    const confirmarApertura = document.getElementById("confirmarApertura");
-    const cancelarModal = document.getElementById("cancelarModal");
-    const montoInicialInput = document.getElementById("montoInicial");
-    const estadoCaja = document.getElementById("estadoCaja");
-    const accesoVentas = document.getElementById("accesoVentas");
-
-    async function verificarCajaAbierta() {
-      const hoy = new Date().toISOString().split("T")[0];
-      const q = query(
-        collection(db, "cajas"),
-        where("uid", "==", uid),
-        where("fecha", "==", hoy),
-        where("estado", "==", "abierta")
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        estadoCaja.textContent = "✅ Caja abierta. Redirigiendo a ventas...";
-        btnAbrirCaja.style.display = "none";
-        accesoVentas.style.display = "block";
-
-        // 🔁 Redireccionar automáticamente a ventas después de 1 segundo
-        setTimeout(() => {
-          window.location.href = "ventas.html";
-        }, 1000);
-      }
-    }
-
-    btnAbrirCaja.addEventListener("click", () => {
-      montoInicialInput.value = "";
-      modalCaja.style.display = "flex";
-    });
-
-    cancelarModal.addEventListener("click", () => {
-      modalCaja.style.display = "none";
-    });
-
-    confirmarApertura.addEventListener("click", async () => {
-      const monto = parseFloat(montoInicialInput.value);
-      if (isNaN(monto)) {
-        alert("Ingresa un monto válido.");
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
         return;
       }
 
-      const hoy = new Date();
-      const caja = {
-        uid,
-        usuario,
-        fecha: hoy.toISOString().split("T")[0],
-        horaApertura: hoy.toLocaleTimeString(),
-        montoInicial: monto,
-        estado: "abierta"
+      // Obtener datos del usuario desde Firestore
+      const ref = doc(db, "usuarios", user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        window.location.href = "index.html";
+        return;
+      }
+      const data = snap.data();
+      const nombre = data.nombre || "Usuario";
+      const rol = data.rol || "";
+
+      const uid = user.uid;
+      const usuario = nombre;
+
+      document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombre}`;
+      document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
+      document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      window.cerrarSesion = function () {
+        localStorage.clear();
+        window.location.href = "index.html";
       };
 
-      await addDoc(collection(db, "cajas"), caja);
-      estadoCaja.textContent = "✅ Caja abierta";
-      btnAbrirCaja.style.display = "none";
-      accesoVentas.style.display = "block";
-      modalCaja.style.display = "none";
-    });
+      const btnAbrirCaja = document.getElementById("btnAbrirCaja");
+      const modalCaja = document.getElementById("modalCaja");
+      const confirmarApertura = document.getElementById("confirmarApertura");
+      const cancelarModal = document.getElementById("cancelarModal");
+      const montoInicialInput = document.getElementById("montoInicial");
+      const estadoCaja = document.getElementById("estadoCaja");
+      const accesoVentas = document.getElementById("accesoVentas");
 
-    verificarCajaAbierta();
+      async function verificarCajaAbierta() {
+        const hoy = new Date().toISOString().split("T")[0];
+        const q = query(
+          collection(db, "cajas"),
+          where("uid", "==", uid),
+          where("fecha", "==", hoy),
+          where("estado", "==", "abierta")
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          estadoCaja.textContent = "✅ Caja abierta. Redirigiendo a ventas...";
+          btnAbrirCaja.style.display = "none";
+          accesoVentas.style.display = "block";
 
-    // Marcar la opción activa en el sidebar
-    const links = document.querySelectorAll('.sidebar a');
-    const currentPage = window.location.pathname.split("/").pop();
-
-    links.forEach(link => {
-      if (link.getAttribute("href") === currentPage) {
-        link.classList.add("active");
+          setTimeout(() => {
+            window.location.href = "ventas.html";
+          }, 1000);
+        }
       }
+
+      btnAbrirCaja.addEventListener("click", () => {
+        montoInicialInput.value = "";
+        modalCaja.style.display = "flex";
+      });
+
+      cancelarModal.addEventListener("click", () => {
+        modalCaja.style.display = "none";
+      });
+
+      confirmarApertura.addEventListener("click", async () => {
+        const monto = parseFloat(montoInicialInput.value);
+        if (isNaN(monto)) {
+          alert("Ingresa un monto válido.");
+          return;
+        }
+
+        const hoy = new Date();
+        const caja = {
+          uid,
+          usuario,
+          fecha: hoy.toISOString().split("T")[0],
+          horaApertura: hoy.toLocaleTimeString(),
+          montoInicial: monto,
+          estado: "abierta"
+        };
+
+        await addDoc(collection(db, "cajas"), caja);
+        estadoCaja.textContent = "✅ Caja abierta";
+        btnAbrirCaja.style.display = "none";
+        accesoVentas.style.display = "block";
+        modalCaja.style.display = "none";
+      });
+
+      verificarCajaAbierta();
+
+      // Marcar la opción activa en el sidebar
+      const links = document.querySelectorAll('.sidebar a');
+      const currentPage = window.location.pathname.split("/").pop();
+      links.forEach(link => {
+        if (link.getAttribute("href") === currentPage) {
+          link.classList.add("active");
+        }
+      });
     });
-  });
   </script>
 </body>
 </html>

@@ -2,44 +2,53 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Confirmar Venta</title>
-  <link rel="stylesheet" href="/static/lateral.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ventas - ERP</title>
+  <link rel="stylesheet" href="/static/lateral.css" />
   <style>
-    .card {
-      max-width: 600px;
-      margin: 30px auto;
-      padding: 20px;
+    .autocomplete-suggestions {
       border: 1px solid #ccc;
-      border-radius: 12px;
-      background-color: #f9f9f9;
+      max-height: 150px;
+      overflow-y: auto;
+      position: absolute;
+      background-color: white;
+      z-index: 1000;
+      width: calc(100% - 20px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .card input {
-      width: 100%;
-      margin-bottom: 12px;
+
+    .autocomplete-suggestions div {
       padding: 8px;
-      font-size: 16px;
-    }
-    .card button {
-      padding: 10px 20px;
-      font-size: 16px;
       cursor: pointer;
     }
-    .mensaje.success {
-      color: green;
+
+    .autocomplete-suggestions div:hover {
+      background-color: #f0f0f0;
     }
-    .mensaje.error {
+
+    .stock-bajo {
+      background-color: #ffefef;
+    }
+
+    .remove-btn {
       color: red;
+      cursor: pointer;
     }
+
     table {
       width: 100%;
-      margin-top: 20px;
       border-collapse: collapse;
+      margin-top: 20px;
     }
+
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
       text-align: center;
+    }
+
+    .card input {
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -51,144 +60,269 @@
       <span id="fecha-hoy"></span>
     </div>
     <div class="header-column center-column">
-      <h1>Confirmar Venta</h1>
+      <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
+    </div>
+    <div class="header-column right-column">
+      <a href="index.html" class="logout" onclick="cerrarSesion()">Cerrar sesión</a>
+      <a href="cerrar.html" class="logout" style="margin-top: 10px;">Cerrar caja</a>
     </div>
   </div>
 
-  <div class="card">
-    <h2>Datos del Cliente (Contado)</h2>
-    
-    <label for="nombreContado">Nombre del cliente:</label>
-    <input type="text" id="nombreContado" placeholder="Ej: Juan Pérez" />
+  <div class="content">
+    <div class="sidebar">
+      <h2>Mi ERP</h2>
+         <ul>
+        <li><a href="dashboard.html">Inicio</a></li>
+        <li><a href="caja.html">Caja</a></li>
+        <li><a href="compras.html">Compras</a></li>
+        <li><a href="inventario.html">Inventario</a></li>
+        <li><a href="reportes.html">Reportes</a></li>
+        <li><a href="usuarios.html">Usuarios</a></li>
+        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+        <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
 
-    <label for="clienteNIT">NIT:</label>
-    <input type="text" id="clienteNIT" placeholder="Ej: C/F o 1234567" />
 
-    <button id="btnConfirmarVenta">Confirmar Venta</button>
-    <p id="mensaje" class="mensaje"></p>
-  </div>
+      </ul>
+    </div>
 
-  <div id="factura" style="display:none; max-width:800px; margin:30px auto;">
-    <h2>Factura</h2>
-    <p><strong>Cliente:</strong> <span id="facturaClienteNombre"></span></p>
-    <p><strong>NIT:</strong> <span id="facturaClienteNIT"></span></p>
-    <p><strong>Fecha:</strong> <span id="facturaFecha"></span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Cantidad</th>
-          <th>Precio Unitario</th>
-          <th>Subtotal</th>
-        </tr>
-      </thead>
-      <tbody id="facturaBody"></tbody>
-    </table>
-    <h3>Total: <span id="facturaTotal"></span></h3>
+    <div class="main">
+      <h1>Agregar Productos al Carrito</h1>
+
+      <div class="card" style="position: relative;">
+        <input type="text" id="nombreProducto" placeholder="Nombre del producto" autocomplete="off" />
+        <div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
+
+        <input type="number" id="cantidadVenta" placeholder="Cantidad a vender" />
+        <button id="agregarAlCarrito">Agregar al carrito</button>
+        <p id="mensaje" style="color: red;"></p>
+      </div>
+
+      <h2>Carrito de Ventas</h2>
+      <table id="tablaCarrito">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+            <th>Eliminar</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <button id="finalizarVenta">Ir a Confirmar Venta</button>
+
+      <h2>Productos en Inventario</h2>
+      <table id="tablaProductos">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Imagen</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <script type="module">
+    import { db } from './firebase.js';
     import {
-      getFirestore, collection, addDoc, doc, getDoc
+      collection, getDocs, doc, getDoc
     } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-    import { app } from "./firebase.js";
 
-    const db = getFirestore(app);
+    const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'GTQ' });
     const auth = getAuth();
-    const carrito = JSON.parse(localStorage.getItem("carrito")) || [];
+    let productos = [];
+    let carrito = [];
 
-    const nombreContadoInput = document.getElementById("nombreContado");
-    const clienteNITInput = document.getElementById("clienteNIT");
+    const nombreInput = document.getElementById("nombreProducto");
+    const cantidadInput = document.getElementById("cantidadVenta");
+    const sugerenciasDiv = document.getElementById("autocomplete-suggestions");
+    const tablaCarrito = document.querySelector("#tablaCarrito tbody");
     const mensaje = document.getElementById("mensaje");
 
-    const formatter = new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'GTQ'
-    });
-
-    document.getElementById("btnConfirmarVenta").addEventListener("click", async () => {
-      if (carrito.length === 0) {
-        mostrarMensaje("⚠️ El carrito está vacío.", "error");
-        return;
-      }
-
-      const clienteNombre = nombreContadoInput.value.trim() || "C/F";
-      const clienteNIT = clienteNITInput.value.trim() || "C/F";
-      const total = carrito.reduce((acc, item) => acc + item.cantidad * item.precio, 0);
-      const facturaID = `FAC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Date.now()}`;
-
-      const productosFactura = carrito.map(item => ({
-        producto: item.nombre,
-        cantidad: item.cantidad,
-        precioUnitario: item.precio,
-        subtotal: item.precio * item.cantidad
-      }));
-
-      for (const item of carrito) {
-        await addDoc(collection(db, "ventas"), {
-          producto: item.nombre,
-          cantidad: item.cantidad,
-          total: item.precio * item.cantidad,
-          fecha: new Date()
-        });
-      }
-
-      await addDoc(collection(db, "facturas"), {
-        numero: facturaID,
-        cliente: clienteNombre,
-        nit: clienteNIT,
-        total,
-        formaPago: "contado",
-        cuotas: 0,
-        productos: productosFactura,
-        fecha: new Date()
+    function mostrarOpcionesPermitidas(rolUsuario) {
+      const links = document.querySelectorAll('.sidebar a');
+      links.forEach(link => {
+        const rolesPermitidos = link.getAttribute('data-rol');
+        if (!rolesPermitidos || (rolesPermitidos !== "todos" && !rolesPermitidos.includes(rolUsuario))) {
+          link.style.display = "none";
+        }
       });
-
-      localStorage.removeItem("carrito");
-      mostrarMensaje("✅ Venta registrada con éxito.", "success");
-      mostrarFactura(clienteNombre, clienteNIT, productosFactura);
-    });
-
-    function mostrarFactura(nombre, nit, productos) {
-      document.getElementById("facturaClienteNombre").textContent = nombre;
-      document.getElementById("facturaClienteNIT").textContent = nit;
-      document.getElementById("facturaFecha").textContent = new Date().toLocaleString();
-
-      const tbody = document.getElementById("facturaBody");
-      tbody.innerHTML = "";
-      let total = 0;
-
-      productos.forEach(item => {
-        const subtotal = item.subtotal;
-        total += subtotal;
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${item.producto}</td>
-          <td>${item.cantidad}</td>
-          <td>${formatter.format(item.precioUnitario)}</td>
-          <td>${formatter.format(subtotal)}</td>`;
-        tbody.appendChild(row);
-      });
-
-      document.getElementById("facturaTotal").textContent = formatter.format(total);
-      document.getElementById("factura").style.display = "block";
-    }
-
-    function mostrarMensaje(msg, tipo) {
-      mensaje.textContent = msg;
-      mensaje.className = `mensaje ${tipo}`;
     }
 
     onAuthStateChanged(auth, async (user) => {
-      if (!user) return window.location.href = "index.html";
-      const ref = doc(db, "usuarios", user.uid);
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      const uid = user.uid;
+      const ref = doc(db, "usuarios", uid);
       const snap = await getDoc(ref);
-      if (!snap.exists()) return window.location.href = "index.html";
+
+      if (!snap.exists()) {
+        alert("⚠️ Tu perfil no está registrado en el sistema.");
+        window.location.href = "index.html";
+        return;
+      }
+
       const data = snap.data();
       document.getElementById("usuario-logueado").textContent = `Bienvenido, ${data.nombre}`;
       document.getElementById("rol-logueado").textContent = `Rol: ${data.rol}`;
       document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES');
+
+      mostrarOpcionesPermitidas(data.rol);
+      if (!["Administrador", "Vendedor", "Bodega"].includes(data.rol)) {
+        alert("⚠️ No tienes permisos para acceder a esta sección.");
+        window.location.href = "dashboard.html";
+        return;
+      }
+
+      await cargarInventario();
+      const carritoGuardado = localStorage.getItem("carrito");
+      if (carritoGuardado) {
+        carrito = JSON.parse(carritoGuardado);
+        actualizarTabla();
+      }
+    });
+
+    window.cerrarSesion = function () {
+      localStorage.clear();
+      auth.signOut().then(() => window.location.href = "index.html");
+    };
+
+    async function cargarInventario() {
+      const snapshot = await getDocs(collection(db, "inventario"));
+      productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const tbody = document.querySelector("#tablaProductos tbody");
+      tbody.innerHTML = '';
+      productos.forEach(p => {
+        const row = tbody.insertRow();
+        if (p.cantidad <= 5) row.classList.add('stock-bajo');
+        row.innerHTML = `
+          <td>${p.nombre}</td>
+          <td>${p.cantidad}</td>
+          <td>${formatter.format(p.precio)}</td>
+          <td><img src="${p.imagen}" width="80" /></td>
+        `;
+      });
+    }
+
+    function mostrarSugerencias() {
+      const valor = nombreInput.value.toLowerCase().trim();
+      sugerenciasDiv.innerHTML = '';
+
+      if (valor === '') {
+        sugerenciasDiv.style.display = "none";
+        return;
+      }
+
+      const sugerencias = productos.filter(p =>
+        p.nombre.toLowerCase().split(" ").some(pal => pal.startsWith(valor))
+      ).slice(0, 5);
+
+      if (!sugerencias.length) {
+        sugerenciasDiv.style.display = "none";
+        return;
+      }
+
+      sugerencias.forEach(p => {
+        const div = document.createElement("div");
+        div.textContent = p.nombre;
+        div.onclick = () => {
+          nombreInput.value = p.nombre;
+          sugerenciasDiv.innerHTML = '';
+          sugerenciasDiv.style.display = "none";
+        };
+        sugerenciasDiv.appendChild(div);
+      });
+
+      sugerenciasDiv.style.display = "block";
+    }
+
+    function actualizarTabla() {
+  tablaCarrito.innerHTML = '';
+  carrito.forEach((item, index) => {
+    const row = tablaCarrito.insertRow();
+    row.innerHTML = `
+      <td>${item.nombre}</td>
+      <td>
+        <input type="number" min="1" value="${item.cantidad}" 
+          onchange="actualizarCantidad(${index}, this.value)" style="width: 60px;" />
+      </td>
+      <td>${formatter.format(item.precio)}</td>
+      <td>${formatter.format(item.precio * item.cantidad)}</td>
+      <td><span class="remove-btn" onclick="eliminarDelCarrito(${index})">🗑️</span></td>
+    `;
+  });
+}
+
+
+    window.eliminarDelCarrito = function(index) {
+      carrito.splice(index, 1);
+      actualizarTabla();
+      localStorage.setItem("carrito", JSON.stringify(carrito));
+    };
+
+    window.actualizarCantidad = function(index, nuevaCantidad) {
+  nuevaCantidad = parseInt(nuevaCantidad);
+  if (isNaN(nuevaCantidad) || nuevaCantidad <= 0) return;
+
+  carrito[index].cantidad = nuevaCantidad;
+  actualizarTabla();
+  localStorage.setItem("carrito", JSON.stringify(carrito));
+};
+
+
+    document.getElementById("agregarAlCarrito").addEventListener("click", () => {
+      const nombre = nombreInput.value.trim().toLowerCase();
+      const cantidad = parseInt(cantidadInput.value);
+
+      if (!nombre || isNaN(cantidad) || cantidad <= 0) {
+        mensaje.textContent = "⚠️ Debes ingresar un nombre válido y una cantidad.";
+        return;
+      }
+
+      const producto = productos.find(p => p.nombre.toLowerCase() === nombre);
+      if (!producto) {
+        mensaje.textContent = "⚠️ Producto no encontrado.";
+        return;
+      }
+
+      carrito.push({
+        id: producto.id,
+        nombre: producto.nombre,
+        cantidad,
+        precio: producto.precio
+      });
+
+      nombreInput.value = '';
+      cantidadInput.value = '';
+      mensaje.textContent = '';
+      actualizarTabla();
+      localStorage.setItem("carrito", JSON.stringify(carrito));
+    });
+
+    document.getElementById("finalizarVenta").addEventListener("click", () => {
+      if (carrito.length === 0) {
+        alert("⚠️ El carrito está vacío.");
+        return;
+      }
+      window.location.href = "confirmar_venta.html";
+    });
+
+    nombreInput.addEventListener("input", mostrarSugerencias);
+    document.addEventListener("click", (e) => {
+      if (!sugerenciasDiv.contains(e.target) && e.target !== nombreInput) {
+        sugerenciasDiv.innerHTML = '';
+        sugerenciasDiv.style.display = 'none';
+      }
     });
   </script>
 </body>

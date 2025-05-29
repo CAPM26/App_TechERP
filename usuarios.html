@@ -98,16 +98,18 @@
 
   <script type="module">
     import {
-      auth,
-      db,
-      createUserWithEmailAndPassword,
-      setDoc,
-      getDocs,
-      deleteDoc,
-      collection,
-      doc,
-      getDoc
-    } from './firebase.js';
+  auth,
+  db,
+  functions,
+  httpsCallable,
+  setDoc,
+  getDocs,
+  deleteDoc,
+  collection,
+  doc,
+  getDoc
+} from './firebase.js';
+
 
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
@@ -366,12 +368,24 @@ document.getElementById("btnRegistrar").addEventListener("click", async () => {
 
 try {
   if (idEditando) {
-    await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
-    Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
-  } else {
-    await setDoc(doc(collection(db, "usuarios")), { nombre, correo, telefono, rol, estado });
-    Swal.fire('¡Guardado!', 'El usuario ha sido creado correctamente.', 'success');
-  }
+  await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
+  Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
+} else {
+const crearUsuario = httpsCallable(functions, "crearUsuario");
+
+await crearUsuario({
+  email: correo,
+  password,
+  nombre,
+  telefono,
+  rol,
+  estado
+});
+
+
+
+}
+
 
   obtenerUsuarios();
   document.getElementById("nombre").value = "";

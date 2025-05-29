@@ -6,59 +6,15 @@
   <title>Confirmar Venta - ERP</title>
   <link rel="stylesheet" href="/static/lateral.css" />
   <style>
-    #sugerenciasClientes {
-      display: none;
-      position: absolute;
-      width: 300px;
-      z-index: 999;
-      background: white;
-      border: 1px solid #ccc;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    #sugerenciasClientes thead {
-      background-color: #f1f1f1;
-    }
-
-    #sugerenciasClientes th,
-    #sugerenciasClientes td {
-      padding: 5px;
-      text-align: left;
-    }
-
-    #sugerenciasClientes tbody tr {
-      cursor: pointer;
-    }
-
-    #sugerenciasClientes tbody tr:hover {
-      background-color: #e6f7ff;
-    }
-
-    .mensaje.success {
-      background-color: #d4edda;
-      color: #155724;
-    }
-
-    .mensaje.error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-
-    .form-row {
-      margin: 10px 0;
-      position: relative;
-    }
-
-    #cuotasWrapper {
-      display: none;
-      margin-top: 10px;
-    }
-
-    #pagoMensual {
-      font-weight: bold;
-      margin-left: 10px;
-    }
+    /* Estilos originales */
+    #sugerenciasClientes { display: none; position: absolute; width: 300px; z-index: 999; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
+    #sugerenciasClientes thead { background-color: #f1f1f1; }
+    #sugerenciasClientes th, #sugerenciasClientes td { padding: 5px; text-align: left; }
+    #sugerenciasClientes tbody tr { cursor: pointer; }
+    #sugerenciasClientes tbody tr:hover { background-color: #e6f7ff; }
+    .mensaje.success { background-color: #d4edda; color: #155724; }
+    .mensaje.error { background-color: #f8d7da; color: #721c24; }
+    .form-row { margin: 10px 0; position: relative; }
   </style>
 </head>
 <body>
@@ -80,16 +36,14 @@
     <div class="sidebar">
       <h2>Mi ERP</h2>
       <ul>
-        <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="caja.html">Caja</a></li>
-        <li><a href="compras.html">Compras</a></li>
-        <li><a href="inventario.html">Inventario</a></li>
-        <li><a href="reportes.html">Reportes</a></li>
-        <li><a href="usuarios.html">Usuarios</a></li>
-        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+        <li><a href="dashboard.html" data-rol="todos">Inicio</a></li>
+        <li><a href="caja.html" data-rol="Administrador,Vendedor">Caja</a></li>
+        <li><a href="compras.html" data-rol="Administrador,Bodega">Compras</a></li>
+        <li><a href="inventario.html" data-rol="Administrador,Bodega">Inventario</a></li>
+        <li><a href="reportes.html" data-rol="Administrador,Bodega">Reportes</a></li>
+        <li><a href="usuarios.html" data-rol="Administrador" class="active">Usuarios</a></li>
+        <li><a href="infofactura.html" data-rol="Administrador">Config. Factura</a></li>
         <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
-
-
       </ul>
     </div>
 
@@ -114,69 +68,15 @@
         </tfoot>
       </table>
 
-      <div class="form-row" id="seccionBusquedaCliente" style="display: none;">
-        <label for="buscarCliente"><strong>Buscar Cliente:</strong></label><br>
-        <input type="text" id="buscarCliente" placeholder="Escriba el nombre del cliente" style="width: 300px;" />
-        <table id="sugerenciasClientes">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>NIT</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <p id="sinCoincidencias" style="display: none; color: #c00; margin-top: 5px;">
-          ❌ Cliente no encontrado. <button id="btnMostrarFormularioNuevoCliente">Agregar nuevo cliente</button>
-        </p>
-      </div>
-
-      <div class="form-row" id="formularioNuevoCliente" style="display: none; flex-direction: column;">
-        <label><strong>Nuevo Cliente:</strong></label>
-        <input type="text" id="nuevoClienteNombre" placeholder="Nombre completo del cliente" style="width: 300px;" />
-        <input type="text" id="nuevoClienteNIT" placeholder="NIT del cliente" style="width: 200px;" />
-        <input type="number" id="nuevoClienteCredito" placeholder="Crédito autorizado (opcional)" style="width: 200px;" />
-        <button id="btnGuardarNuevoCliente">Guardar Cliente</button>
-      </div>
-
-      <div class="form-row" id="seccionNombreContado" style="display: none;">
-        <label for="nombreContado"><strong>Nombre del cliente (contado):</strong></label>
+      <div class="form-row" id="seccionNombreContado">
+        <label for="nombreContado"><strong>Nombre del consumidor:</strong></label>
         <input type="text" id="nombreContado" placeholder="Ej: Cliente Mostrador" style="width: 300px; margin-left: 10px;" />
       </div>
 
       <div class="form-row">
         <label for="clienteNIT"><strong>NIT del cliente:</strong></label>
-        <input type="text" id="clienteNIT" placeholder="1234567-8" style="width: 200px; margin-right: 10px;" readonly />
+        <input type="text" id="clienteNIT" placeholder="1234567-8" style="width: 200px; margin-right: 10px;" />
         <label><input type="checkbox" id="usarCF" /> Usar CF</label>
-      </div>
-
-      <div class="form-row">
-        <label for="formaPago"><strong>Forma de Pago:</strong></label>
-        <select id="formaPago">
-          <option value="contado">Contado</option>
-          <option value="credito">Crédito</option>
-          <option value="cuotas">Cuotas</option>
-        </select>
-      </div>
-
-      <div class="form-row" id="cuotasWrapper" style="display: none;">
-        <label for="numCuotas"><strong>Número de cuotas:</strong></label>
-        <select id="numCuotas" style="width: 100px;">
-          <option value="">Selecciona</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-          <option value="9">9</option>
-          <option value="10">10</option>
-          <option value="11">11</option>
-          <option value="12">12</option>
-        </select>
-        <span id="pagoMensual"></span>
       </div>
 
       <div class="form-row">

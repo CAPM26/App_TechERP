@@ -1,5 +1,5 @@
 import {
-  getFirestore, collection, getDocs, doc, addDoc, getDoc
+  getFirestore, collection, getDocs, doc, addDoc, getDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 import { app } from "./firebase.js";
@@ -24,7 +24,14 @@ document.getElementById("btnConfirmarVenta").addEventListener("click", async () 
 
   const total = carrito.reduce((acc, item) => acc + item.cantidad * item.precio, 0);
   const clienteNombre = nombreContadoInput.value.trim() || "C/F";
-  const clienteNIT = clienteNITInput.value.trim() || "C/F";
+  let clienteNIT = clienteNITInput.value.trim().toUpperCase() || "C/F";
+
+  // Validación para impedir CF si total excede Q2,500.00
+  if ((clienteNIT === "C/F" || clienteNIT === "CF") && total > 2500) {
+    mostrarMensaje("❌ No se puede emitir factura con NIT 'CF' por un monto mayor a Q2,500.00", "error");
+    return;
+  }
+
   const facturaID = `FAC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Date.now()}`;
 
   const productosFactura = carrito.map(item => ({
@@ -41,6 +48,15 @@ document.getElementById("btnConfirmarVenta").addEventListener("click", async () 
       total: item.precio * item.cantidad,
       fecha: new Date()
     });
+
+    // Descontar del inventario
+    const productoRef = doc(db, "inventario", item.id);
+    const productoSnap = await getDoc(productoRef);
+    if (productoSnap.exists()) {
+      const productoData = productoSnap.data();
+      const nuevaCantidad = (productoData.cantidad || 0) - item.cantidad;
+      await updateDoc(productoRef, { cantidad: nuevaCantidad >= 0 ? nuevaCantidad : 0 });
+    }
   }
 
   await addDoc(collection(db, "facturas"), {

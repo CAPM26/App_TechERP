@@ -6,29 +6,11 @@
   <title>Clientes y Proveedores</title>
   <link rel="stylesheet" href="/static/lateral.css" />
   <style>
-    .btn-toggle {
-      margin: 10px 5px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .formulario, .tabla-container {
-      display: none;
-      margin-top: 20px;
-    }
-    .formulario.active, .tabla-container.active {
-      display: block;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
+    .btn-toggle { margin: 10px 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    .formulario, .tabla-container { display: none; margin-top: 20px; }
+    .formulario.active, .tabla-container.active { display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     .autocomplete-suggestions {
       border: 1px solid #ccc;
       max-height: 150px;
@@ -37,18 +19,17 @@
       background: white;
       z-index: 1000;
     }
-    .autocomplete-suggestions div {
-      padding: 5px;
-      cursor: pointer;
-    }
-    .autocomplete-suggestions div:hover {
-      background-color: #f0f0f0;
-    }
+    .autocomplete-suggestions div { padding: 5px; cursor: pointer; }
+    .autocomplete-suggestions div:hover { background-color: #f0f0f0; }
   </style>
 </head>
 <body>
 <div class="header">
-  <div class="header-column"><span id="usuario-logueado">Bienvenido</span></div>
+  <div class="header-column">
+    <span id="usuario-logueado">Bienvenido</span><br>
+    <span id="rol-logueado"></span><br>
+    <span id="fecha-hoy"></span>
+  </div>
   <div class="header-column center-column">
     <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
   </div>
@@ -61,16 +42,14 @@
   <div class="sidebar">
     <h2>Mi ERP</h2>
     <ul>
-       <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="caja.html">Caja</a></li>
-        <li><a href="compras.html">Compras</a></li>
-        <li><a href="inventario.html">Inventario</a></li>
-        <li><a href="reportes.html">Reportes</a></li>
-        <li><a href="usuarios.html">Usuarios</a></li>
-        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
-        <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
-
-
+      <li><a href="dashboard.html">Inicio</a></li>
+      <li><a href="caja.html">Caja</a></li>
+      <li><a href="compras.html">Compras</a></li>
+      <li><a href="inventario.html">Inventario</a></li>
+      <li><a href="reportes.html">Reportes</a></li>
+      <li><a href="usuarios.html">Usuarios</a></li>
+      <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+      <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
     </ul>
   </div>
 
@@ -79,7 +58,6 @@
     <button class="btn-toggle" onclick="mostrarFormulario('cliente')">👤 Clientes</button>
     <button class="btn-toggle" onclick="mostrarFormulario('proveedor')">🏭 Proveedores</button>
 
-    <!-- FORMULARIO CLIENTE -->
     <div class="formulario" id="formCliente">
       <h2>Agregar Cliente</h2>
       <form id="clienteForm">
@@ -95,7 +73,6 @@
       </form>
     </div>
 
-    <!-- FORMULARIO PROVEEDOR -->
     <div class="formulario" id="formProveedor">
       <h2>Agregar Proveedor</h2>
       <form id="proveedorForm">
@@ -107,7 +84,6 @@
       </form>
     </div>
 
-    <!-- BUSCADOR Y TABLAS -->
     <div class="tabla-container active" id="tablaClientes">
       <h2>Lista de Clientes</h2>
       <input type="text" id="buscadorClientes" placeholder="Buscar cliente..." autocomplete="off" />
@@ -149,121 +125,128 @@
 </div>
 
 <script type="module">
- import { auth, db } from './firebase.js';
+import { auth, db } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "index.html";
-    return;
-  }
-
-  // Obtener datos del usuario desde Firestore
-  const ref = doc(db, "usuarios", user.uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    window.location.href = "index.html";
-    return;
-  }
-  const data = snap.data();
-  const nombre = data.nombre || "Usuario";
-  const rol = data.rol || "";
-
-  document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombre}`;
-  document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
-  document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
-  
-  window.mostrarFormulario = function(tipo) {
-    document.getElementById('formCliente').classList.remove('active');
-    document.getElementById('formProveedor').classList.remove('active');
-    document.getElementById('tablaClientes').classList.remove('active');
-    document.getElementById('tablaProveedores').classList.remove('active');
-
-    if (tipo === 'cliente') {
-      document.getElementById('formCliente').classList.add('active');
-      document.getElementById('tablaClientes').classList.add('active');
-      cargarClientes();
-    } else {
-      document.getElementById('formProveedor').classList.add('active');
-      document.getElementById('tablaProveedores').classList.add('active');
-      cargarProveedores();
+window.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "index.html";
+      return;
     }
-  }
 
-  document.getElementById('clienteForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = {
-      tipo: 'cliente',
-      nombre: document.getElementById('clienteNombre').value,
-      taller: document.getElementById('clienteTaller').value,
-      ubicacion: document.getElementById('clienteUbicacion').value,
-      nit: document.getElementById('clienteNit').value,
-      telefono: document.getElementById('clienteTelefono').value,
-      dpi: document.getElementById('clienteDpi').value,
-      lugar: document.getElementById('clienteLugar').value,
-      credito: parseFloat(document.getElementById('clienteCredito').value) || 0
-    };
-    await addDoc(collection(db, 'personas'), data);
-    e.target.reset();
-    cargarClientes();
-  });
+    const ref = doc(db, "usuarios", user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      window.location.href = "index.html";
+      return;
+    }
 
-  document.getElementById('proveedorForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = {
-      tipo: 'proveedor',
-      nombre: document.getElementById('proveedorNombre').value,
-      lugar: document.getElementById('proveedorLugar').value,
-      nit: document.getElementById('proveedorNit').value,
-      telefono: document.getElementById('proveedorTelefono').value
-    };
-    await addDoc(collection(db, 'personas'), data);
-    e.target.reset();
-    cargarProveedores();
-  });
+    const data = snap.data();
+    const nombre = data.nombre || "Usuario";
+    const rol = data.rol || "";
 
-  async function cargarClientes() {
-    const snapshot = await getDocs(collection(db, 'personas'));
-    const tbody = document.getElementById('clientesBody');
-    tbody.innerHTML = '';
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      if (d.tipo === 'cliente') {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${d.nombre}</td>
-          <td>${d.taller}</td>
-          <td>${d.ubicacion}</td>
-          <td>Q${d.credito?.toFixed(2) || '0.00'}</td>
-          <td>${d.nit || '-'}</td>
-          <td>${d.telefono || '-'}</td>
-          <td>${d.dpi || '-'}</td>
-          <td>${d.lugar || '-'}</td>
-        `;
-        tbody.appendChild(tr);
+    const usuarioElem = document.getElementById("usuario-logueado");
+    const rolElem = document.getElementById("rol-logueado");
+    const fechaElem = document.getElementById("fecha-hoy");
+
+    if (usuarioElem) usuarioElem.textContent = `Bienvenido, ${nombre}`;
+    if (rolElem) rolElem.textContent = `Rol: ${rol}`;
+    if (fechaElem) fechaElem.textContent = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    window.mostrarFormulario = function(tipo) {
+      document.getElementById('formCliente').classList.remove('active');
+      document.getElementById('formProveedor').classList.remove('active');
+      document.getElementById('tablaClientes').classList.remove('active');
+      document.getElementById('tablaProveedores').classList.remove('active');
+
+      if (tipo === 'cliente') {
+        document.getElementById('formCliente').classList.add('active');
+        document.getElementById('tablaClientes').classList.add('active');
+        cargarClientes();
+      } else {
+        document.getElementById('formProveedor').classList.add('active');
+        document.getElementById('tablaProveedores').classList.add('active');
+        cargarProveedores();
       }
-    });
-  }
+    }
 
-  async function cargarProveedores() {
-    const snapshot = await getDocs(collection(db, 'personas'));
-    const tbody = document.getElementById('proveedoresBody');
-    tbody.innerHTML = '';
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      if (d.tipo === 'proveedor') {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${d.nombre}</td>
-          <td>${d.lugar}</td>
-          <td>${d.nit || '-'}</td>
-          <td>${d.telefono || '-'}</td>
-        `;
-        tbody.appendChild(tr);
-      }
+    document.getElementById('clienteForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = {
+        tipo: 'cliente',
+        nombre: document.getElementById('clienteNombre').value,
+        taller: document.getElementById('clienteTaller').value,
+        ubicacion: document.getElementById('clienteUbicacion').value,
+        nit: document.getElementById('clienteNit').value,
+        telefono: document.getElementById('clienteTelefono').value,
+        dpi: document.getElementById('clienteDpi').value,
+        lugar: document.getElementById('clienteLugar').value,
+        credito: parseFloat(document.getElementById('clienteCredito').value) || 0
+      };
+      await addDoc(collection(db, 'personas'), data);
+      e.target.reset();
+      cargarClientes();
     });
-  } });
+
+    document.getElementById('proveedorForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const data = {
+        tipo: 'proveedor',
+        nombre: document.getElementById('proveedorNombre').value,
+        lugar: document.getElementById('proveedorLugar').value,
+        nit: document.getElementById('proveedorNit').value,
+        telefono: document.getElementById('proveedorTelefono').value
+      };
+      await addDoc(collection(db, 'personas'), data);
+      e.target.reset();
+      cargarProveedores();
+    });
+
+    async function cargarClientes() {
+      const snapshot = await getDocs(collection(db, 'personas'));
+      const tbody = document.getElementById('clientesBody');
+      tbody.innerHTML = '';
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d.tipo === 'cliente') {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${d.nombre}</td>
+            <td>${d.taller}</td>
+            <td>${d.ubicacion}</td>
+            <td>Q${d.credito?.toFixed(2) || '0.00'}</td>
+            <td>${d.nit || '-'}</td>
+            <td>${d.telefono || '-'}</td>
+            <td>${d.dpi || '-'}</td>
+            <td>${d.lugar || '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+
+    async function cargarProveedores() {
+      const snapshot = await getDocs(collection(db, 'personas'));
+      const tbody = document.getElementById('proveedoresBody');
+      tbody.innerHTML = '';
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d.tipo === 'proveedor') {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${d.nombre}</td>
+            <td>${d.lugar}</td>
+            <td>${d.nit || '-'}</td>
+            <td>${d.telefono || '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+    }
+  });
+});
 </script>
 </body>
 </html>

@@ -77,7 +77,6 @@
         <li><a href="usuarios.html">Usuarios</a></li>
         <li><a href="infofactura.html" class="active">Config. Factura</a></li>
         <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
-
       </ul>
     </div>
 
@@ -93,6 +92,9 @@
 
           <label for="direccion">Dirección:</label>
           <textarea id="direccion" rows="2" required></textarea>
+
+          <label for="nit">NIT de la empresa:</label>
+          <input type="text" id="nit" required />
 
           <label for="logo">Subir logo de la empresa (opcional):</label>
           <input type="file" id="logo" accept="image/*" />
@@ -150,6 +152,7 @@
           document.getElementById("nombre").value = data.nombre || '';
           document.getElementById("telefono").value = data.telefono || '';
           document.getElementById("direccion").value = data.direccion || '';
+          document.getElementById("nit").value = data.nit || '';
           if (data.logo) {
             currentLogoUrl = data.logo;
             previewLogo.src = data.logo;
@@ -175,9 +178,10 @@
       const nombre = document.getElementById("nombre").value.trim();
       const telefono = document.getElementById("telefono").value.trim();
       const direccion = document.getElementById("direccion").value.trim();
+      const nit = document.getElementById("nit").value.trim();
       const file = logoInput.files[0];
 
-      if (!nombre || !telefono || !direccion) {
+      if (!nombre || !telefono || !direccion || !nit) {
         mensaje.textContent = "⚠️ Todos los campos excepto el logo son obligatorios.";
         return;
       }
@@ -196,6 +200,7 @@
           nombre,
           telefono,
           direccion,
+          nit,
           logo: logoUrl
         });
 
@@ -210,7 +215,6 @@
 
     cargarConfiguracion();
 
-    // Marcar la opción activa en el menú
     const links = document.querySelectorAll('.sidebar a');
     const currentPage = window.location.pathname.split("/").pop();
     links.forEach(link => {

@@ -12,7 +12,11 @@
 <body>
 
   <div class="header">
-    <div class="header-column"><span class="left-text" id="usuario-logueado">Bienvenido</span></div>
+    <div class="header-column">
+      <span class="left-text" id="usuario-logueado">Bienvenido</span><br>
+      <span id="rol-logueado"></span><br>
+      <span id="fecha-hoy"></span>
+    </div>
     <div class="header-column center-column">
       <img src="logo3-removebg-preview.png" alt="Logo del ERP" class="logo" />
     </div>
@@ -33,8 +37,6 @@
         <li><a href="usuarios.html">Usuarios</a></li>
         <li><a href="infofactura.html" class="active">Config. Factura</a></li>
         <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
-
-
       </ul>
     </div>
 
@@ -56,6 +58,8 @@
 
         <label for="proveedor">Proveedor:</label>
         <input type="text" id="proveedor" placeholder="Ej. Distribuidora XYZ" />
+        <div id="sugerenciasProveedor" class="autocomplete-suggestions"></div>
+
 
         <label for="alerta">Alerta de stock mínimo:</label>
         <input type="number" id="alerta" placeholder="Ej. 10" min="0" />
@@ -95,7 +99,10 @@
   <script type="module">
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
-import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+let proveedoresCache = [];
+const sugerenciasProveedorDiv = document.getElementById("sugerenciasProveedor");
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -103,7 +110,6 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  // Obtener datos del usuario desde Firestore
   const ref = doc(db, "usuarios", user.uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
@@ -114,223 +120,267 @@ onAuthStateChanged(auth, async (user) => {
   const nombre = data.nombre || "Usuario";
   const rol = data.rol || "";
 
-  document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombre}`;
-  document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
-  document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+  const usuarioElem = document.getElementById("usuario-logueado");
+  const rolElem = document.getElementById("rol-logueado");
+  const fechaElem = document.getElementById("fecha-hoy");
 
+  if (usuarioElem) usuarioElem.textContent = `Bienvenido, ${nombre}`;
+  if (rolElem) rolElem.textContent = `Rol: ${rol}`;
+  if (fechaElem) fechaElem.textContent = new Date().toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
-    const productoInput = document.getElementById("producto");
-    const cantidadInput = document.getElementById("cantidad");
-    const precioCompraInput = document.getElementById("precioCompra");
-    const precioVentaInput = document.getElementById("precioVenta");
-    const proveedorInput = document.getElementById("proveedor");
-    const alertaInput = document.getElementById("alerta");
-    const imagenInput = document.getElementById("imagen");
-    const mensaje = document.getElementById("mensajeCompra");
-    const btnGuardar = document.getElementById("btnGuardar");
-    const sugerenciasDiv = document.getElementById("sugerencias");
+  const usuario = nombre;
 
-    const modalTexto = document.getElementById("modalTexto");
-    const modalComparacion = document.getElementById("modalComparacion");
-    const cerrarComparacion = document.getElementById("cerrarComparacion");
+  const productoInput = document.getElementById("producto");
+  const cantidadInput = document.getElementById("cantidad");
+  const precioCompraInput = document.getElementById("precioCompra");
+  const precioVentaInput = document.getElementById("precioVenta");
+  const proveedorInput = document.getElementById("proveedor");
+  const alertaInput = document.getElementById("alerta");
+  const imagenInput = document.getElementById("imagen");
+  const mensaje = document.getElementById("mensajeCompra");
+  const btnGuardar = document.getElementById("btnGuardar");
+  const sugerenciasDiv = document.getElementById("sugerencias");
 
-    let inventarioCache = [];
-    let productoExistenteGlobal = null;
-    let nuevosDatosGlobal = null;
+  const modalTexto = document.getElementById("modalTexto");
+  const modalComparacion = document.getElementById("modalComparacion");
+  const cerrarComparacion = document.getElementById("cerrarComparacion");
 
-    cerrarComparacion.onclick = () => modalComparacion.style.display = "none";
-    window.onclick = e => {
-      if (e.target === modalComparacion) modalComparacion.style.display = "none";
+  let inventarioCache = [];
+  let productoExistenteGlobal = null;
+  let nuevosDatosGlobal = null;
+
+  cerrarComparacion.onclick = () => modalComparacion.style.display = "none";
+  window.onclick = e => {
+    if (e.target === modalComparacion) modalComparacion.style.display = "none";
+  };
+
+  function mostrarModal(texto) {
+    modalTexto.textContent = texto;
+    document.getElementById("modalInfo").style.display = "block";
+  }
+
+  function mostrarComparacion(antiguo, nuevo) {
+    productoExistenteGlobal = antiguo;
+    nuevosDatosGlobal = nuevo;
+
+    const tabla = document.getElementById("tablaComparacion");
+    tabla.innerHTML = "";
+
+    const campos = ["cantidad", "precioCompra", "precio", "proveedor", "alerta", "imagen"];
+    const etiquetas = {
+      cantidad: "Cantidad",
+      precioCompra: "Precio compra",
+      precio: "Precio venta",
+      proveedor: "Proveedor",
+      alerta: "Alerta",
+      imagen: "Imagen"
     };
 
-    function mostrarModal(texto) {
-      modalTexto.textContent = texto;
-      document.getElementById("modalInfo").style.display = "block";
-    }
-
-    function mostrarComparacion(antiguo, nuevo) {
-      productoExistenteGlobal = antiguo;
-      nuevosDatosGlobal = nuevo;
-
-      const tabla = document.getElementById("tablaComparacion");
-      tabla.innerHTML = "";
-
-      const campos = ["cantidad", "precioCompra", "precio", "proveedor", "alerta", "imagen"];
-      const etiquetas = {
-        cantidad: "Cantidad",
-        precioCompra: "Precio compra",
-        precio: "Precio venta",
-        proveedor: "Proveedor",
-        alerta: "Alerta",
-        imagen: "Imagen"
-      };
-
-      campos.forEach(campo => {
-        const fila = document.createElement("tr");
-        fila.innerHTML = `
-  <td>${etiquetas[campo]}</td>
-  <td>${antiguo[campo] ?? "-"}</td>
-  <td>${nuevo[campo] ?? "-"}</td>
-  <td>${campo === "cantidad" 
-    ? "✔️ (automático)" 
-    : `<input type="checkbox" data-campo="${campo}" checked>`}</td>
+    campos.forEach(campo => {
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+<td>${etiquetas[campo]}</td>
+<td>${antiguo[campo] ?? "-"}</td>
+<td>${nuevo[campo] ?? "-"}</td>
+<td>${campo === "cantidad" 
+  ? "✔️ (automático)" 
+  : `<input type="checkbox" data-campo="${campo}" checked>`}</td>
 `;
-        tabla.appendChild(fila);
-      });
+      tabla.appendChild(fila);
+    });
 
-      modalComparacion.style.display = "block";
+    modalComparacion.style.display = "block";
+  }
+
+  document.getElementById("btnConservarDatos").onclick = () => {
+    modalComparacion.style.display = "none";
+    mostrarModal("✅ Se conservaron los datos originales del inventario.");
+  };
+
+  document.getElementById("btnActualizarDatos").onclick = async () => {
+    const id = productoExistenteGlobal.id;
+    try {
+      await updateDoc(doc(db, "inventario", id), nuevosDatosGlobal);
+      modalComparacion.style.display = "none";
+      mostrarModal("✅ Datos del producto actualizados exitosamente.");
+      await cargarInventario();
+    } catch (err) {
+      console.error(err);
+      mensaje.textContent = "❌ Error al actualizar el producto.";
+      mensaje.classList.add("error");
+    }
+  };
+
+  async function cargarInventario() {
+    const snapshot = await getDocs(collection(db, "inventario"));
+    inventarioCache = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    sugerenciasDiv.style.display = "none";
+      // Extraer proveedores únicos
+  const proveedoresSet = new Set(inventarioCache.map(p => p.proveedor?.trim()).filter(Boolean));
+  proveedoresCache = Array.from(proveedoresSet);
+  }
+
+
+  proveedorInput.addEventListener("input", () => {
+  const texto = proveedorInput.value.trim().toLowerCase();
+  sugerenciasProveedorDiv.innerHTML = "";
+
+  if (texto.length === 0) {
+    sugerenciasProveedorDiv.style.display = "none";
+    return;
+  }
+
+  const filtrados = proveedoresCache.filter(p => 
+    p.toLowerCase().startsWith(texto)
+  ).slice(0, 5);
+
+  if (filtrados.length === 0) {
+    sugerenciasProveedorDiv.style.display = "none";
+    return;
+  }
+
+  filtrados.forEach(nombre => {
+    const div = document.createElement("div");
+    div.textContent = nombre;
+    div.addEventListener("click", () => {
+      proveedorInput.value = nombre;
+      sugerenciasProveedorDiv.innerHTML = "";
+      sugerenciasProveedorDiv.style.display = "none";
+    });
+    sugerenciasProveedorDiv.appendChild(div);
+  });
+
+  sugerenciasProveedorDiv.style.display = "block";
+});
+
+
+  productoInput.addEventListener("input", () => {
+    const texto = productoInput.value.trim().toLowerCase();
+    sugerenciasDiv.innerHTML = "";
+
+    if (texto.length === 0) {
+      sugerenciasDiv.style.display = "none";
+      return;
     }
 
-    document.getElementById("btnConservarDatos").onclick = () => {
-      modalComparacion.style.display = "none";
-      mostrarModal("✅ Se conservaron los datos originales del inventario.");
-    };
+    const filtrados = inventarioCache.filter(p => {
+      const nombre = p.nombre.toLowerCase();
+      const palabras = nombre.split(" ");
+      return palabras.some(palabra => palabra.startsWith(texto));
+    }).slice(0, 5);
 
-    document.getElementById("btnActualizarDatos").onclick = async () => {
-      const id = productoExistenteGlobal.id;
-      try {
-        await updateDoc(doc(db, "inventario", id), nuevosDatosGlobal);
-        modalComparacion.style.display = "none";
-        mostrarModal("✅ Datos del producto actualizados exitosamente.");
-        await cargarInventario();
-      } catch (err) {
-        console.error(err);
-        mensaje.textContent = "❌ Error al actualizar el producto.";
-        mensaje.classList.add("error");
-      }
-    };
+    if (filtrados.length === 0) {
+      sugerenciasDiv.style.display = "none";
+      return;
+    }
 
-    async function cargarInventario() {
-      const snapshot = await getDocs(collection(db, "inventario"));
-      inventarioCache = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      console.log("Inventario cargado:", inventarioCache); // Útil para depuración
+    filtrados.forEach(producto => {
+      const div = document.createElement("div");
+      div.textContent = producto.nombre;
+      div.addEventListener("click", () => {
+        productoInput.value = producto.nombre;
+        sugerenciasDiv.innerHTML = "";
+        sugerenciasDiv.style.display = "none";
+      });
+      sugerenciasDiv.appendChild(div);
+    });
+
+    sugerenciasDiv.style.display = "block";
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!sugerenciasDiv.contains(e.target) && e.target !== productoInput) {
+      sugerenciasDiv.innerHTML = "";
       sugerenciasDiv.style.display = "none";
     }
+  });
 
-    productoInput.addEventListener("input", () => {
-      const texto = productoInput.value.trim().toLowerCase();
-      sugerenciasDiv.innerHTML = "";
+  btnGuardar.addEventListener("click", async () => {
+    mensaje.textContent = "";
+    mensaje.classList.remove("ok", "error");
 
-      if (texto.length === 0) {
-        sugerenciasDiv.style.display = "none";
-        return;
-      }
+    const nombre = productoInput.value.trim();
+    const nombreLower = nombre.toLowerCase();
+    const cantidad = parseInt(cantidadInput.value);
+    const precioCompra = parseFloat(precioCompraInput.value);
+    const precioVenta = parseFloat(precioVentaInput.value);
+    const proveedor = proveedorInput.value.trim();
+    const alerta = parseInt(alertaInput.value) || 0;
+    const imagen = imagenInput.value.trim();
 
-      const filtrados = inventarioCache.filter(p => {
-        const nombre = p.nombre.toLowerCase();
-        const palabras = nombre.split(" ");
-        return palabras.some(palabra => palabra.startsWith(texto));
-      }).slice(0, 5);
+    if (!nombre || isNaN(cantidad) || isNaN(precioCompra) || isNaN(precioVenta)) {
+      mensaje.textContent = "⚠️ Completa todos los campos obligatorios.";
+      mensaje.classList.add("error");
+      return;
+    }
 
-      if (filtrados.length === 0) {
-        sugerenciasDiv.style.display = "none";
-        return;
-      }
+    if (precioVenta < precioCompra) {
+      mensaje.textContent = "⚠️ El precio de venta no puede ser menor al de compra.";
+      mensaje.classList.add("error");
+      return;
+    }
 
-      filtrados.forEach(producto => {
-        const div = document.createElement("div");
-        div.textContent = producto.nombre;
-        div.addEventListener("click", () => {
-          productoInput.value = producto.nombre;
-          sugerenciasDiv.innerHTML = "";
-          sugerenciasDiv.style.display = "none";
-        });
-        sugerenciasDiv.appendChild(div);
-      });
+    try {
+      const inventarioRef = collection(db, "inventario");
+      let productoExistente = inventarioCache.find(p => p.nombre.toLowerCase() === nombreLower);
 
-      sugerenciasDiv.style.display = "block";
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!sugerenciasDiv.contains(e.target) && e.target !== productoInput) {
-        sugerenciasDiv.innerHTML = "";
-        sugerenciasDiv.style.display = "none";
-      }
-    });
-
-    btnGuardar.addEventListener("click", async () => {
-      mensaje.textContent = "";
-      mensaje.classList.remove("ok", "error");
-
-      const nombre = productoInput.value.trim();
-      const nombreLower = nombre.toLowerCase();
-      const cantidad = parseInt(cantidadInput.value);
-      const precioCompra = parseFloat(precioCompraInput.value);
-      const precioVenta = parseFloat(precioVentaInput.value);
-      const proveedor = proveedorInput.value.trim();
-      const alerta = parseInt(alertaInput.value) || 0;
-      const imagen = imagenInput.value.trim();
-
-      if (!nombre || isNaN(cantidad) || isNaN(precioCompra) || isNaN(precioVenta)) {
-        mensaje.textContent = "⚠️ Completa todos los campos obligatorios.";
-        mensaje.classList.add("error");
-        return;
-      }
-
-      if (precioVenta < precioCompra) {
-        mensaje.textContent = "⚠️ El precio de venta no puede ser menor al de compra.";
-        mensaje.classList.add("error");
-        return;
-      }
-
-      try {
-        const inventarioRef = collection(db, "inventario");
-        let productoExistente = inventarioCache.find(p => p.nombre.toLowerCase() === nombreLower);
-
-        if (productoExistente) {
-          const nuevaCantidad = (productoExistente.cantidad || 0) + cantidad;
-          const nuevosDatos = {
-            cantidad: nuevaCantidad,
-            precio: precioVenta,
-            precioCompra,
-            proveedor,
-            alerta,
-            imagen
-          };
-          mostrarComparacion(productoExistente, nuevosDatos);
-        } else {
-          await addDoc(inventarioRef, {
-            nombre: nombreLower,
-            cantidad,
-            precio: precioVenta,
-            precioCompra,
-            proveedor,
-            alerta,
-            imagen
-          });
-          mostrarModal("✅ Nuevo producto agregado al inventario.");
-        }
-
-        await addDoc(collection(db, "compras"), {
-          nombre: nombreLower,
-          cantidad,
+      if (productoExistente) {
+        const nuevaCantidad = (productoExistente.cantidad || 0) + cantidad;
+        const nuevosDatos = {
+          cantidad: nuevaCantidad,
+          precio: precioVenta,
           precioCompra,
-          precioVenta,
           proveedor,
           alerta,
-          imagen,
-          totalCompra: (cantidad * precioCompra).toFixed(2),
-          fecha: new Date(),
-          usuario
+          imagen
+        };
+        mostrarComparacion(productoExistente, nuevosDatos);
+      } else {
+        await addDoc(inventarioRef, {
+          nombre: nombreLower,
+          cantidad,
+          precio: precioVenta,
+          precioCompra,
+          proveedor,
+          alerta,
+          imagen
         });
-
-        document.getElementById("formCompra").reset();
-        sugerenciasDiv.innerHTML = "";
-        sugerenciasDiv.style.display = "none";
-        await cargarInventario();
-      } catch (err) {
-        console.error(err);
-        mensaje.textContent = "❌ Error al registrar la compra.";
-        mensaje.classList.add("error");
+        mostrarModal("✅ Nuevo producto agregado al inventario.");
       }
-    });
 
-    // ⚠️ Muy importante: carga el inventario al final
-    await cargarInventario();
+      await addDoc(collection(db, "compras"), {
+        nombre: nombreLower,
+        cantidad,
+        precioCompra,
+        precioVenta,
+        proveedor,
+        alerta,
+        imagen,
+        totalCompra: (cantidad * precioCompra).toFixed(2),
+        fecha: new Date(),
+        usuario
+      });
+
+      document.getElementById("formCompra").reset();
+      sugerenciasDiv.innerHTML = "";
+      sugerenciasDiv.style.display = "none";
+      await cargarInventario();
+    } catch (err) {
+      console.error(err);
+      mensaje.textContent = "❌ Error al registrar la compra.";
+      mensaje.classList.add("error");
+    }
   });
+
+  await cargarInventario();
+});
   </script>
 
 </body>

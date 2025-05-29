@@ -371,16 +371,18 @@ try {
   await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
   Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
 } else {
-const crearUsuario = httpsCallable(functions, "crearUsuario");
+// Generar ID aleatorio simulado (para Firestore)
+const id = crypto.randomUUID(); // o usa un Date.now() si lo prefieres
 
-await crearUsuario({
-  email: correo,
-  password,
+await setDoc(doc(db, "usuarios", id), {
   nombre,
+  correo,
   telefono,
   rol,
-  estado
+  estado,
+  password // Puedes almacenarla por ahora si quieres mostrarla, pero no es seguro
 });
+
 
 
 

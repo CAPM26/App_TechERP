@@ -33,7 +33,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyD0P6AS8Ej9mnUo3EUOHmzTtMrnJN7nA_E",
   authDomain: "erpy-11103.firebaseapp.com",
   projectId: "erpy-11103",
-  storageBucket: "erpy-11103.appspot.com", // ⚠️ corregido: .app → .appspot.com
+  storageBucket: "erpy-11103.firebasestorage.app",
   messagingSenderId: "699852482039",
   appId: "1:699852482039:web:8b225ced1799aa2c4d3af2",
   measurementId: "G-1J3MEXT9JN"

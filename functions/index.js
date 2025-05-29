@@ -1,52 +1,44 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const cors = require("cors")({ origin: true }); // O especifica tu dominio
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// Función para crear usuario (solo para administradores)
-exports.crearUsuario = functions.https.onCall(async (data, context) => {
-  const uid = context.auth?.uid;
-  if (!uid) {
-    throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
-  }
+exports.crearUsuario = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    if (req.method !== 'POST') {
+      return res.status(405).send("Método no permitido");
+    }
 
-  // Obtener datos del usuario que hace la solicitud
-  const userDoc = await db.collection("usuarios").doc(uid).get();
-  const userData = userDoc.data();
+    try {
+      const { email, password, nombre, telefono, rol, estado, uidSolicitante } = req.body;
 
-  if (!userData || userData.rol !== "Administrador") {
-    throw new functions.https.HttpsError("permission-denied", "No tienes permisos para crear usuarios.");
-  }
+      if (!uidSolicitante) {
+        return res.status(401).json({ error: "Falta el UID del solicitante." });
+      }
 
-  const { email, password, nombre, telefono, rol, estado } = data;
+      const userDoc = await db.collection("usuarios").doc(uidSolicitante).get();
+      const userData = userDoc.data();
 
-  if (!email || !password || !nombre || !telefono || !rol || !estado) {
-    throw new functions.https.HttpsError("invalid-argument", "Todos los campos son obligatorios.");
-  }
+      if (!userData || userData.rol !== "Administrador") {
+        return res.status(403).json({ error: "No tienes permisos para crear usuarios." });
+      }
 
-  try {
-    // Crear cuenta en Firebase Auth
-    const userRecord = await admin.auth().createUser({
-      email,
-      password
-    });
+      const userRecord = await admin.auth().createUser({ email, password });
 
-    // Guardar información adicional en Firestore
-    await db.collection("usuarios").doc(userRecord.uid).set({
-      nombre,
-      correo: email,
-      telefono,
-      rol,
-      estado
-    });
+      await db.collection("usuarios").doc(userRecord.uid).set({
+        nombre,
+        correo: email,
+        telefono,
+        rol,
+        estado
+      });
 
-    return {
-      success: true,
-      uid: userRecord.uid
-    };
-  } catch (error) {
-    console.error("Error al crear usuario:", error);
-    throw new functions.https.HttpsError("internal", error.message);
-  }
+      return res.status(200).json({ success: true, uid: userRecord.uid });
+    } catch (error) {
+      console.error("Error al crear usuario:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
 });

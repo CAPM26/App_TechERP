@@ -36,16 +36,34 @@
       color: #333333;
       margin-bottom: 24px;
     }
+    .input-group {
+      position: relative;
+      margin-bottom: 20px;
+    }
     input[type="email"],
-    input[type="password"] {
+    input[type="password"],
+    input[type="text"] {
       width: 100%;
       padding: 12px;
-      margin-bottom: 20px;
+      padding-right: 40px;
       border: 1px solid #ccc;
       border-radius: 8px;
       font-size: 16px;
+      box-sizing: border-box;
     }
-    button {
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+    }
+    button[type="submit"] {
       width: 100%;
       padding: 12px;
       background-color: #007bff;
@@ -55,7 +73,7 @@
       font-size: 16px;
       cursor: pointer;
     }
-    button:hover {
+    button[type="submit"]:hover {
       background-color: #0056b3;
     }
     .recover {
@@ -84,7 +102,10 @@
     <h2>Iniciar sesión</h2>
     <form id="login-form">
       <input id="email" type="email" placeholder="Correo electrónico" required />
-      <input id="password" type="password" placeholder="Contraseña" required />
+      <div class="input-group">
+        <input id="password" type="password" placeholder="Contraseña" required />
+        <button type="button" class="toggle-password" id="togglePassword" title="Mostrar/Ocultar contraseña">👁️</button>
+      </div>
       <div class="error" id="error-msg"></div>
       <button type="submit">Iniciar sesión</button>
     </form>
@@ -98,53 +119,89 @@
       auth,
       db,
       signInWithEmailAndPassword,
+      getDocs,
+      collection,
       getDoc,
       doc
     } from './firebase.js';
 
     const loginForm = document.getElementById('login-form');
     const errorMsg = document.getElementById('error-msg');
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+
+    // Mostrar/ocultar contraseña
+    togglePasswordBtn.addEventListener('click', () => {
+      passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+    });
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.textContent = '';
 
       const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+      const password = passwordInput.value;
 
+      // Validaciones básicas antes de continuar
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errorMsg.textContent = "⚠️ Ingresa un correo electrónico válido.";
+        return;
+      }
+
+      if (!password) {
+        errorMsg.textContent = "⚠️ Ingresa una contraseña.";
+        return;
+      }
+
+      // Paso 1: Buscar en Firestore primero
       try {
+        const snapshot = await getDocs(collection(db, "usuarios"));
+        let usuario = null;
+
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.correo === email && data.password === password) {
+            usuario = { id: docSnap.id, ...data };
+          }
+        });
+
+        if (usuario) {
+          if (usuario.estado !== "activo") {
+            errorMsg.textContent = "⚠️ Tu cuenta está inactiva.";
+            return;
+          }
+
+          localStorage.setItem("usuario", usuario.nombre);
+          localStorage.setItem("rol", usuario.rol);
+          localStorage.setItem("uid", usuario.id);
+          window.location.href = "dashboard.html";
+          return;
+        }
+
+        // Paso 2: Si no está en Firestore, intentar con Firebase Auth
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
 
         const userDoc = await getDoc(doc(db, "usuarios", uid));
         if (!userDoc.exists()) {
-          errorMsg.textContent = "⚠️ Usuario sin perfil en el sistema.";
+          errorMsg.textContent = "⚠️ Usuario sin perfil interno.";
           return;
         }
 
         const userData = userDoc.data();
         if (userData.estado !== "activo") {
-          errorMsg.textContent = "⚠️ Tu cuenta está inactiva. Contacta al administrador.";
+          errorMsg.textContent = "⚠️ Tu cuenta está inactiva.";
           return;
         }
 
-        // Guardar datos en localStorage
         localStorage.setItem("usuario", userData.nombre);
         localStorage.setItem("rol", userData.rol);
         localStorage.setItem("uid", uid);
-
-        // Redireccionar al dashboard
         window.location.href = "dashboard.html";
 
       } catch (error) {
         console.error("Error al iniciar sesión:", error);
-        if (error.code === 'auth/user-not-found') {
-          errorMsg.textContent = "❌ Usuario no encontrado.";
-        } else if (error.code === 'auth/wrong-password') {
-          errorMsg.textContent = "❌ Contraseña incorrecta.";
-        } else {
-          errorMsg.textContent = "❌ Error al iniciar sesión.";
-        }
+        errorMsg.textContent = "❌ Error al iniciar sesión.";
       }
     });
   </script>

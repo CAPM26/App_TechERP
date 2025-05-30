@@ -58,7 +58,7 @@
             </div>
           </div>
         </div>
-          
+
         <!-- Widget 2: Tendencia de ventas Chart -->
         <div class="card widget">
           <div class="widget-header">
@@ -108,20 +108,31 @@
             </div>
           </div>
         </div>
-        <!-- Widget 6: caja -->
         <div class="card widget">
-          <div class="widget-header">
-            <h3>💼 Caja del Día</h3>
-            <button class="toggle-btn" onclick="toggleWidget(this)">−</button>
-          </div>
-          <div class="widget-body">
-              <p><strong>Caja abierta con :</strong> <span id="montoInicialCaja">Cargando...</span></p>
-              <p><strong>Total de ventas:</strong> <span id="totalVentasHoy">Cargando...</span></p>
-              <p><strong>Total estimado en caja:</strong> <span id="totalEstimadoCaja">Cargando...</span></p>
+    <div class="widget-header">
+      <h2><i class="fas fa-cash-register"></i> Caja del Día</h2>
+      <button class="toggle-btn" onclick="toggleWidget(this)">−</button>
+    </div>
+    <div class="widget-content">
+      <p><strong>Caja abierta con:</strong> <span id="montoInicialCaja">Cargando...</span></p>
+    <p><strong>Total de ventas:</strong> <span id="totalVentasHoy">Cargando...</span></p>
+    <p><strong>Total estimado en caja:</strong> <span id="totalEstimadoCaja">Cargando...</span></p>
+    </div>
+  </div>
+      <!-- Widget: Proyección de Ganancia -->
+<div class="card widget">
+  <div class="widget-header">
+    <h2><i class="fas fa-chart-line"></i> Proyección de Ganancias</h2>
+    <button class="toggle-btn" onclick="toggleWidget(this)">−</button>
+  </div>
+  <div class="widget-content">
+    <p><strong>Inversión Total:</strong> <span id="totalInversion">Cargando...</span></p>
+    <p><strong>Ingreso Potencial:</strong> <span id="totalIngreso">Cargando...</span></p>
+    <p><strong>Ganancia Estimada:</strong> <span id="gananciaProyectada">Cargando...</span></p>
+  </div>
+</div>
 
-            </div>
-          </div>
-        </div>
+
       </div>
 
       <!-- Tabla de Productos con Pocas Existencias -->
@@ -160,7 +171,54 @@
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-import { query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { Timestamp, where, query } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+
+// Rango de hoy
+const hoy = new Date();
+const inicio = new Date(hoy.setHours(0, 0, 0, 0));
+const fin = new Date();
+fin.setHours(23, 59, 59, 999);
+
+const qCompras = query(
+  collection(db, "compras"),
+  where("fecha", ">=", Timestamp.fromDate(inicio)),
+  where("fecha", "<=", Timestamp.fromDate(fin))
+);
+
+const qVentas = query(
+  collection(db, "ventas"),
+  where("fecha", ">=", Timestamp.fromDate(inicio)),
+  where("fecha", "<=", Timestamp.fromDate(fin))
+);
+
+Promise.all([
+  getDocs(qCompras),
+  getDocs(qVentas)
+]).then(([comprasSnap, ventasSnap]) => {
+  let totalCompras = 0;
+  comprasSnap.forEach(doc => {
+    const data = doc.data();
+    totalCompras += parseFloat(data.total || 0);
+  });
+
+  let totalVentas = 0;
+  ventasSnap.forEach(doc => {
+    const data = doc.data();
+    totalVentas += parseFloat(data.total || 0);
+  });
+
+  const gananciaNeta = totalVentas - totalCompras;
+
+  document.getElementById("totalComprasHoy").textContent = `Q ${totalCompras.toFixed(2)}`;
+  document.getElementById("totalVentasHoyResumen").textContent = `Q ${totalVentas.toFixed(2)}`;
+  document.getElementById("gananciaNetaHoy").textContent = `Q ${gananciaNeta.toFixed(2)}`;
+}).catch(error => {
+  console.error("Error al cargar resumen financiero:", error);
+  document.getElementById("totalComprasHoy").textContent = "Error";
+  document.getElementById("totalVentasHoyResumen").textContent = "Error";
+  document.getElementById("gananciaNetaHoy").textContent = "Error";
+});
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -193,8 +251,6 @@ onAuthStateChanged(auth, async (user) => {
       });
     }
 
-
-    
     mostrarOpcionesPermitidas(rol);
 
     window.cerrarSesion = function () {
@@ -270,7 +326,7 @@ window.toggleWidget = function (button) {
         }
       });
     });
-          
+
         // ...existing code...
         
         // Tendencia de ventas por día
@@ -431,41 +487,111 @@ window.toggleWidget = function (button) {
         link.classList.add("active");
       }
     });
-    // 🔎 Consultar caja abierta del usuario hoy y total de ventas
-    (async () => {
-      const hoyISO = new Date().toISOString().split('T')[0];
-      const inicioDia = new Date(`${hoyISO}T00:00:00`);
-      const finDia = new Date(`${hoyISO}T23:59:59`);
+getDocs(collection(db, "cajas"))
+  .then((querySnapshot) => {
+    let cajaHoy = null;
+    const hoy = new Date().toISOString().split("T")[0];
 
-      const cajaQuery = query(
-        collection(db, "cajas"),
-        where("uid", "==", user.uid),
-        where("fecha", "==", hoyISO),
-        where("estado", "==", "abierta")
-      );
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const estado = (data.estado || "").toLowerCase().trim();
+      const fecha = (data.fecha || "").trim();
 
-      const ventasQuery = query(
-        collection(db, "ventas"),
-        where("fecha", ">=", Timestamp.fromDate(inicioDia)),
-        where("fecha", "<=", Timestamp.fromDate(finDia))
-      );
+      if (estado === "abierta" && fecha === hoy) {
+        cajaHoy = data;
+      }
+    });
 
-      const [cajaSnap, ventasSnap] = await Promise.all([
-        getDocs(cajaQuery),
-        getDocs(ventasQuery)
-      ]);
-
-      const montoInicial = cajaSnap.empty ? 0 : (cajaSnap.docs[0].data().montoInicial || 0);
-      const totalVentas = ventasSnap.docs.reduce((acc, doc) => acc + (doc.data().total || 0), 0);
-      const cantidadVentas = ventasSnap.size;
+    if (cajaHoy) {
+      const montoInicial = parseFloat(cajaHoy.montoInicial) || 0;
+      const totalVentas = parseFloat(cajaHoy.totalVentas) || 0;
       const totalEstimado = montoInicial + totalVentas;
 
-      // Mostrar en tarjeta (reemplaza esto por lógica DOM según tu HTML)
-      document.getElementById("montoInicialCaja").textContent = `Q${montoInicial.toFixed(2)}`;
-      document.getElementById("totalVentasHoy").textContent = `Q${totalVentas.toFixed(2)} (${cantidadVentas} ventas)`;
-      document.getElementById("totalEstimadoCaja").textContent = `Q${totalEstimado.toFixed(2)}`;
-    })();
+      document.getElementById("montoInicialCaja").textContent = `Q ${montoInicial.toFixed(2)}`;
+      document.getElementById("totalVentasHoy").textContent = `Q ${totalVentas.toFixed(2)}`;
+      document.getElementById("totalEstimadoCaja").textContent = `Q ${totalEstimado.toFixed(2)}`;
+    } else {
+      document.getElementById("montoInicialCaja").textContent = "No abierta hoy";
+      document.getElementById("totalVentasHoy").textContent = "-";
+      document.getElementById("totalEstimadoCaja").textContent = "-";
+    }
+  })
+  .catch((error) => {
+    console.error("Error al cargar la caja:", error);
+  });
 
+getDocs(collection(db, "compras"))
+  .then((querySnapshot) => {
+    let inversionTotal = 0;
+    let ingresoPotencial = 0;
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const cantidad = parseFloat(data.cantidad || 0);
+      const precioCompra = parseFloat(data.precioCompra || 0);
+      const precioVenta = parseFloat(data.precioVenta || 0);
+
+      if (cantidad > 0 && precioCompra >= 0 && precioVenta >= 0) {
+        inversionTotal += cantidad * precioCompra;
+        ingresoPotencial += cantidad * precioVenta;
+      }
+    });
+
+    const gananciaEstimada = ingresoPotencial - inversionTotal;
+
+    const formatoQ = new Intl.NumberFormat('es-GT', {
+      style: 'currency',
+      currency: 'GTQ',
+      minimumFractionDigits: 2
+    });
+
+    document.getElementById("totalInversion").textContent = formatoQ.format(inversionTotal);
+    document.getElementById("totalIngreso").textContent = formatoQ.format(ingresoPotencial);
+    document.getElementById("gananciaProyectada").textContent = formatoQ.format(gananciaEstimada);
+  })
+  .catch((error) => {
+    console.error("Error al calcular proyección de ganancias:", error);
+    document.getElementById("totalInversion").textContent = "Error";
+    document.getElementById("totalIngreso").textContent = "Error";
+    document.getElementById("gananciaProyectada").textContent = "Error";
+  });
+
+// Formateador guatemalteco para Q
+const formatoQ = new Intl.NumberFormat('es-GT', {
+  style: 'currency',
+  currency: 'GTQ',
+  minimumFractionDigits: 2
+});
+
+getDocs(collection(db, "compras"))
+  .then((querySnapshot) => {
+    let inversionTotal = 0;
+    let ingresoPotencial = 0;
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const cantidad = parseFloat(data.cantidad || 0);
+      const precioCompra = parseFloat(data.precioCompra || 0);
+      const precioVenta = parseFloat(data.precioVenta || 0);
+
+      // Sumar inversión y potencial de venta
+      inversionTotal += precioCompra * cantidad;
+      ingresoPotencial += precioVenta * cantidad;
+    });
+
+    const ganancia = ingresoPotencial - inversionTotal;
+
+    // Mostrar resultados con formato
+    document.getElementById("totalInversion").textContent = formatoQ.format(inversionTotal);
+    document.getElementById("totalIngreso").textContent = formatoQ.format(ingresoPotencial);
+    document.getElementById("gananciaProyectada").textContent = formatoQ.format(ganancia);
+  })
+  .catch((error) => {
+    console.error("Error al calcular la proyección:", error);
+    document.getElementById("totalInversion").textContent = "Error";
+    document.getElementById("totalIngreso").textContent = "Error";
+    document.getElementById("gananciaProyectada").textContent = "Error";
+  });
 
 });
   </script>

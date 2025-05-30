@@ -399,31 +399,36 @@ function mostrarFacturas(facturas) {
       <td>${factura.cuotas ?? '-'}</td>
       <td>Q${factura.total ?? '-'}</td>
       <td>${factura.fecha?.seconds ? new Date(factura.fecha.seconds * 1000).toLocaleString('es-ES') : 'Sin fecha'}</td>
-      <td><button class="detalle-factura-btn" data-idx="${idx}">Ver</button></td>
+     <td>
+  <button class="detalle-factura-btn" data-idx="${idx}">Ver</button>
+  <button class="cancelar-factura-btn" data-id="${factura.id}">🗑️ Cancelar</button>
+</td>
+
     `;
   });
 
   
-  // Evento para mostrar detalle de productos
-  document.querySelectorAll('.detalle-factura-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const idx = this.getAttribute('data-idx');
-      const factura = facturas[idx];
-      if (!factura.productos || !Array.isArray(factura.productos) || factura.productos.length === 0) {
-        Swal.fire('Sin productos', 'Esta factura no tiene productos registrados.', 'info');
-        return;
-      }
-      let html = `
-        <table style="width:100%;text-align:left">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Cantidad</th>
-              <th>Precio Unitario (Q)</th>
-              <th>Subtotal (Q)</th>
-            </tr>
-          </thead>
-          <tbody>
+ document.querySelectorAll('.detalle-factura-btn').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const idx = this.getAttribute('data-idx');
+    const factura = facturas[idx];
+
+    if (!factura.productos || !Array.isArray(factura.productos) || factura.productos.length === 0) {
+      Swal.fire('Sin productos', 'Esta factura no tiene productos registrados.', 'info');
+      return;
+    }
+
+    let html = `
+      <table style="width:100%;text-align:left">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio Unitario (Q)</th>
+            <th>Subtotal (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
           ${(factura.productos || []).map(p => `
             <tr>
               <td>${p.producto || '-'}</td>
@@ -433,25 +438,60 @@ function mostrarFacturas(facturas) {
             </tr>
           `).join('')}
         </tbody>
+      </table>
+    `;
 
-        </table>
-      `;
-      Swal.fire({
-        title: `Detalle de productos`,
-        html: html,
-        width: 600,
-        showCancelButton: true,
-        confirmButtonText: '🖨️ Imprimir',
-        cancelButtonText: 'Cerrar'
-      }).then((result) => {
+    Swal.fire({
+      title: `Detalle de productos`,
+      html: html,
+      width: 600,
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: '🖨️ Imprimir',
+      denyButtonText: '❌ Cancelar factura',
+      cancelButtonText: 'Cerrar'
+    }).then(async (result) => {
       if (result.isConfirmed) {
-       mostrarFactura(factura.cliente, factura.nit, factura.productos); 
+        mostrarFactura(factura.cliente, factura.nit, factura.productos);
+      } else if (result.isDenied) {
+        const confirmacion = await Swal.fire({
+          icon: 'warning',
+          title: '¿Estás seguro?',
+          text: 'Esto eliminará la factura y la moverá a facturas_eliminadas.',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, cancelar',
+          cancelButtonText: 'No'
+        });
 
+        if (!confirmacion.isConfirmed) return;
 
+        try {
+          const ref = doc(db, "facturas", factura.id);
+          const snap = await getDoc(ref);
+          if (!snap.exists()) throw new Error("Factura no encontrada");
+
+          const datos = snap.data();
+          await setDoc(doc(db, "facturas_eliminadas", factura.id), {
+            ...datos,
+            estado: "cancelada",
+            eliminadaEn: new Date(),
+            eliminadaPor: nombre // usa el nombre del usuario logueado
+          });
+
+          await deleteDoc(ref);
+
+          Swal.fire('Factura cancelada', 'La factura se ha movido a facturas_eliminadas.', 'success');
+          document.getElementById('btnGenerarReporte').click(); // refrescar tabla
+        } catch (error) {
+          console.error("Error al cancelar factura:", error);
+          Swal.fire('Error', 'No se pudo cancelar la factura.', 'error');
+        }
       }
     });
-    });
   });
+});
+
+
 }
 
  function mostrarVentas(ventas) {

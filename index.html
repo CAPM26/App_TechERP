@@ -94,7 +94,7 @@
   </style>
 </head>
 <body>
-  <div class="login-container">
+  <div class="login-container" >
     <div class="logo">
       <img src="logo3-removebg-preview.png" alt="Logo ERP" />
     </div>
@@ -114,97 +114,74 @@
     </div>
   </div>
 
-  <script type="module">
-    import {
-      auth,
-      db,
-      signInWithEmailAndPassword,
-      getDocs,
-      collection,
-      getDoc,
-      doc
-    } from './firebase.js';
+ 
+    <script type="module"  >
+  import {
+    db,
+    getDocs,
+    collection
+  } from './firebase.js';
 
-    const loginForm = document.getElementById('login-form');
-    const errorMsg = document.getElementById('error-msg');
-    const passwordInput = document.getElementById('password');
-    const togglePasswordBtn = document.getElementById('togglePassword');
+  const loginForm = document.getElementById('login-form');
+  const errorMsg = document.getElementById('error-msg');
+  const passwordInput = document.getElementById('password');
+  const togglePasswordBtn = document.getElementById('togglePassword');
 
-    // Mostrar/ocultar contraseña
-    togglePasswordBtn.addEventListener('click', () => {
-      passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
-    });
+  togglePasswordBtn.addEventListener('click', () => {
+    passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+  });
 
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errorMsg.textContent = '';
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.textContent = '';
 
-      const email = document.getElementById("email").value.trim();
-      const password = passwordInput.value;
+    const email = document.getElementById("email").value.trim().toLowerCase();
+    const password = passwordInput.value;
 
-      // Validaciones básicas antes de continuar
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errorMsg.textContent = "⚠️ Ingresa un correo electrónico válido.";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errorMsg.textContent = "⚠️ Ingresa un correo electrónico válido.";
+      return;
+    }
+
+    if (!password) {
+      errorMsg.textContent = "⚠️ Ingresa una contraseña.";
+      return;
+    }
+
+    try {
+      const snapshot = await getDocs(collection(db, "usuarios"));
+      let usuario = null;
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if ((data.correo || "").toLowerCase() === email && (data.password || "") === password) {
+          usuario = { id: docSnap.id, ...data };
+        }
+      });
+
+      if (!usuario) {
+        errorMsg.textContent = "❌ Usuario o contraseña incorrectos.";
         return;
       }
 
-      if (!password) {
-        errorMsg.textContent = "⚠️ Ingresa una contraseña.";
+      if (usuario.estado !== "activo") {
+        errorMsg.textContent = "⚠️ Tu cuenta está inactiva.";
         return;
       }
 
-      // Paso 1: Buscar en Firestore primero
-      try {
-        const snapshot = await getDocs(collection(db, "usuarios"));
-        let usuario = null;
+      localStorage.setItem("usuario", usuario.nombre);
+      localStorage.setItem("rol", usuario.rol);
+      localStorage.setItem("uid", usuario.id);
+      window.location.href = "dashboard.html";
+    } catch (error) {
+      console.error("Error en el login:", error);
+      errorMsg.textContent = "❌ Ocurrió un error al iniciar sesión.";
+    }
+  });
+</script>
 
-        snapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          if (data.correo === email && data.password === password) {
-            usuario = { id: docSnap.id, ...data };
-          }
-        });
 
-        if (usuario) {
-          if (usuario.estado !== "activo") {
-            errorMsg.textContent = "⚠️ Tu cuenta está inactiva.";
-            return;
-          }
-
-          localStorage.setItem("usuario", usuario.nombre);
-          localStorage.setItem("rol", usuario.rol);
-          localStorage.setItem("uid", usuario.id);
-          window.location.href = "dashboard.html";
-          return;
-        }
-
-        // Paso 2: Si no está en Firestore, intentar con Firebase Auth
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const uid = userCredential.user.uid;
-
-        const userDoc = await getDoc(doc(db, "usuarios", uid));
-        if (!userDoc.exists()) {
-          errorMsg.textContent = "⚠️ Usuario sin perfil interno.";
-          return;
-        }
-
-        const userData = userDoc.data();
-        if (userData.estado !== "activo") {
-          errorMsg.textContent = "⚠️ Tu cuenta está inactiva.";
-          return;
-        }
-
-        localStorage.setItem("usuario", userData.nombre);
-        localStorage.setItem("rol", userData.rol);
-        localStorage.setItem("uid", uid);
-        window.location.href = "dashboard.html";
-
-      } catch (error) {
-        console.error("Error al iniciar sesión:", error);
-        errorMsg.textContent = "❌ Error al iniciar sesión.";
-      }
-    });
   
-  </script>
+
 </body>
 </html>

@@ -131,6 +131,7 @@ function cerrarSesion() {
   auth.signOut().then(() => window.location.href = "index.html");
 }
 
+
 async function cargarDatosEmpresa() {
   try {
     const ref = doc(db, "configuracion_factura", "empresa");

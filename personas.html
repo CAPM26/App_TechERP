@@ -41,16 +41,16 @@
 <div class="content">
   <div class="sidebar">
     <h2>Mi ERP</h2>
-    <ul>
-      <li><a href="dashboard.html">Inicio</a></li>
-      <li><a href="caja.html">Caja</a></li>
-      <li><a href="compras.html">Compras</a></li>
-      <li><a href="inventario.html">Inventario</a></li>
-      <li><a href="reportes.html">Reportes</a></li>
-      <li><a href="usuarios.html">Usuarios</a></li>
-      <li><a href="infofactura.html" class="active">Config. Factura</a></li>
-      <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
-    </ul>
+   <ul>
+        <li><a href="dashboard.html" data-rol="todos">Inicio</a></li>
+        <li><a href="caja.html" data-rol="Administrador,Vendedor">Caja</a></li>
+        <li><a href="compras.html" data-rol="Administrador,Bodega">Compras</a></li>
+        <li><a href="inventario.html" data-rol="Administrador,Bodega">Inventario</a></li>
+        <li><a href="reportes.html" data-rol="Administrador,Bodega">Reportes</a></li>
+        <li><a href="usuarios.html" data-rol="Administrador" class="active">Usuarios</a></li>
+        <li><a href="infofactura.html" data-rol="Administrador">Config. Factura</a></li>
+        <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
+      </ul>
   </div>
 
   <div class="main">
@@ -155,6 +155,19 @@ window.addEventListener('DOMContentLoaded', () => {
     if (rolElem) rolElem.textContent = `Rol: ${rol}`;
     if (fechaElem) fechaElem.textContent = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 
+    // 🔐 Filtro de menú por rol (sidebar)
+    const enlacesSidebar = document.querySelectorAll('.sidebar li');
+    enlacesSidebar.forEach(item => {
+      const enlace = item.querySelector('a');
+      const rolesPermitidos = enlace?.getAttribute("data-rol");
+      if (rolesPermitidos && rolesPermitidos !== "todos") {
+        const listaRoles = rolesPermitidos.split(",");
+        if (!listaRoles.includes(rol)) {
+          item.style.display = "none";
+        }
+      }
+    });
+
     window.mostrarFormulario = function(tipo) {
       document.getElementById('formCliente').classList.remove('active');
       document.getElementById('formProveedor').classList.remove('active');
@@ -247,6 +260,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
 </script>
 </body>
 </html>

@@ -58,7 +58,7 @@
             </div>
           </div>
         </div>
-
+          
         <!-- Widget 2: Tendencia de ventas Chart -->
         <div class="card widget">
           <div class="widget-header">
@@ -108,6 +108,20 @@
             </div>
           </div>
         </div>
+        <!-- Widget 6: caja -->
+        <div class="card widget">
+          <div class="widget-header">
+            <h3>💼 Caja del Día</h3>
+            <button class="toggle-btn" onclick="toggleWidget(this)">−</button>
+          </div>
+          <div class="widget-body">
+              <p><strong>Caja abierta con :</strong> <span id="montoInicialCaja">Cargando...</span></p>
+              <p><strong>Total de ventas:</strong> <span id="totalVentasHoy">Cargando...</span></p>
+              <p><strong>Total estimado en caja:</strong> <span id="totalEstimadoCaja">Cargando...</span></p>
+
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Tabla de Productos con Pocas Existencias -->
@@ -146,6 +160,7 @@
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+import { query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -178,6 +193,8 @@ onAuthStateChanged(auth, async (user) => {
       });
     }
 
+
+    
     mostrarOpcionesPermitidas(rol);
 
     window.cerrarSesion = function () {
@@ -253,9 +270,9 @@ window.toggleWidget = function (button) {
         }
       });
     });
-
+          
         // ...existing code...
-    
+        
         // Tendencia de ventas por día
         getDocs(ventasCollection).then((querySnapshot) => {
           const ventasPorDia = {};
@@ -414,6 +431,42 @@ window.toggleWidget = function (button) {
         link.classList.add("active");
       }
     });
+    // 🔎 Consultar caja abierta del usuario hoy y total de ventas
+    (async () => {
+      const hoyISO = new Date().toISOString().split('T')[0];
+      const inicioDia = new Date(`${hoyISO}T00:00:00`);
+      const finDia = new Date(`${hoyISO}T23:59:59`);
+
+      const cajaQuery = query(
+        collection(db, "cajas"),
+        where("uid", "==", user.uid),
+        where("fecha", "==", hoyISO),
+        where("estado", "==", "abierta")
+      );
+
+      const ventasQuery = query(
+        collection(db, "ventas"),
+        where("fecha", ">=", Timestamp.fromDate(inicioDia)),
+        where("fecha", "<=", Timestamp.fromDate(finDia))
+      );
+
+      const [cajaSnap, ventasSnap] = await Promise.all([
+        getDocs(cajaQuery),
+        getDocs(ventasQuery)
+      ]);
+
+      const montoInicial = cajaSnap.empty ? 0 : (cajaSnap.docs[0].data().montoInicial || 0);
+      const totalVentas = ventasSnap.docs.reduce((acc, doc) => acc + (doc.data().total || 0), 0);
+      const cantidadVentas = ventasSnap.size;
+      const totalEstimado = montoInicial + totalVentas;
+
+      // Mostrar en tarjeta (reemplaza esto por lógica DOM según tu HTML)
+      document.getElementById("montoInicialCaja").textContent = `Q${montoInicial.toFixed(2)}`;
+      document.getElementById("totalVentasHoy").textContent = `Q${totalVentas.toFixed(2)} (${cantidadVentas} ventas)`;
+      document.getElementById("totalEstimadoCaja").textContent = `Q${totalEstimado.toFixed(2)}`;
+    })();
+
+
 });
   </script>
 </body>

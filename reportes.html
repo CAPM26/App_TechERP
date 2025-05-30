@@ -7,26 +7,119 @@
   <link rel="stylesheet" href="/static/reportes.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
   <style>
-    /* Mejorar aspecto de inputs de fecha */
-    .card input[type="date"] {
-      width: 100%;
-      margin-bottom: 12px;
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
+  /* --- Estilo general --- */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  margin: 0;
+  padding: 0;
+}
 
-    .card label {
-      display: block;
-      font-weight: bold;
-      color: #007bff;
-      margin-bottom: 6px;
-      margin-top: 10px;
-      letter-spacing: 0.5px;
-      font-size: 1em;
-    }
+/* Contenedor principal de la factura */
+.factura-container {
+  max-width: 800px;
+  margin: 30px auto;
+  background-color: #ffffff;
+  padding: 24px;
+  border: 1px solid #ddd;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  font-size: 14px;
+}
+
+/* Encabezado de empresa */
+.factura-header {
+  border-bottom: 2px solid #000;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.factura-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.factura-header p {
+  margin: 4px 0;
+}
+
+/* Datos de factura y cliente */
+.factura-datos {
+  margin-bottom: 20px;
+}
+
+.factura-datos p {
+  margin: 4px 0;
+}
+
+/* Tabla de productos */
+.factura-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.factura-tabla th,
+.factura-tabla td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: right;
+}
+
+.factura-tabla th {
+  background-color: #f2f2f2;
+  text-align: left;
+}
+
+.factura-tabla td:first-child,
+.factura-tabla th:first-child {
+  text-align: left;
+}
+
+/* Total de la factura */
+.factura-total {
+  text-align: right;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* Mensaje de agradecimiento */
+.agradecimiento {
+  text-align: center;
+  margin-top: 20px;
+  font-style: italic;
+}
+
+/* Botón de impresión */
+.factura-botones {
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* --- Estilos para impresión --- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #factura, #factura * {
+    visibility: visible;
+  }
+
+  #factura {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding: 20px;
+    box-shadow: none;
+  }
+
+  .factura-botones {
+    display: none;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -51,13 +144,13 @@
     <div class="sidebar">
       <h2>Mi ERP</h2>
       <ul>
-        <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="caja.html">Caja</a></li>
-        <li><a href="compras.html">Compras</a></li>
-        <li><a href="inventario.html">Inventario</a></li>
-        <li><a href="reportes.html">Reportes</a></li>
-        <li><a href="usuarios.html">Usuarios</a></li>
-        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+        <li><a href="dashboard.html" data-rol="todos">Inicio</a></li>
+        <li><a href="caja.html" data-rol="Administrador,Vendedor">Caja</a></li>
+        <li><a href="compras.html" data-rol="Administrador,Bodega">Compras</a></li>
+        <li><a href="inventario.html" data-rol="Administrador,Bodega">Inventario</a></li>
+        <li><a href="reportes.html" data-rol="Administrador,Bodega">Reportes</a></li>
+        <li><a href="usuarios.html" data-rol="Administrador" class="active">Usuarios</a></li>
+        <li><a href="infofactura.html" data-rol="Administrador">Config. Factura</a></li>
         <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
       </ul>
     </div>
@@ -148,34 +241,54 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "index.html";
     return;
   }
+
   const data = snap.data();
   const nombre = data.nombre || "Usuario";
   const rol = data.rol || "";
 
   document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombre}`;
   document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
-  document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', {
+  
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
 
-  // Sidebar permisos
-  const enlaces = document.querySelectorAll(".sidebar a");
-  enlaces.forEach(link => {
-    const ruta = link.getAttribute("href");
-    if (ruta === "usuarios.html" && rol !== "Administrador") link.parentElement.style.display = "none";
-    if (["compras.html", "inventario.html", "reportes.html"].includes(ruta) && !["Administrador", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
-    if (ruta === "ventas.html" && !["Administrador", "Vendedor", "Bodega"].includes(rol)) link.parentElement.style.display = "none";
+    
+
+  });
+  await cargarDatosEmpresa();
+
+  // Mostrar/ocultar enlaces según el rol del usuario
+  const enlacesSidebar = document.querySelectorAll('.sidebar li');
+  enlacesSidebar.forEach(item => {
+    const enlace = item.querySelector('a');
+    const rolesPermitidos = enlace?.getAttribute("data-rol");
+    if (rolesPermitidos && rolesPermitidos !== "todos") {
+      const listaRoles = rolesPermitidos.split(",").map(r => r.trim());
+      if (!listaRoles.includes(rol)) {
+        item.style.display = "none";
+      }
+    }
   });
 
-  // Solo Administrador y Bodega pueden ver reportes
-  const permitido = ["Administrador", "Bodega"];
-  if (!permitido.includes(rol)) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Acceso denegado',
-      text: 'No tienes permisos para acceder a esta página.',
-      confirmButtonText: 'Ir al inicio'
-    }).then(() => window.location.href = "dashboard.html");
-    return;
+async function cargarDatosEmpresa() {
+  try {
+    const ref = doc(db, "configuracion_factura", "empresa");
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data();
+      document.getElementById("empresaNombre").textContent = data.nombre || "Mi Empresa";
+      document.getElementById("empresaNIT").textContent = "NIT: " + (data.nit || "-");
+      document.getElementById("empresaDireccion").textContent = data.direccion || "Dirección";
+      document.getElementById("empresaTelefono").textContent = data.telefono || "-";
+    }
+  } catch (err) {
+    console.error("❌ Error al cargar datos de empresa:", err);
   }
+}
+
+
 
   window.cerrarSesion = function () {
     auth.signOut().then(() => window.location.href = "index.html");
@@ -290,6 +403,7 @@ function mostrarFacturas(facturas) {
     `;
   });
 
+  
   // Evento para mostrar detalle de productos
   document.querySelectorAll('.detalle-factura-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -310,23 +424,32 @@ function mostrarFacturas(facturas) {
             </tr>
           </thead>
           <tbody>
-            ${factura.productos.map(p => `
-              <tr>
-                <td>${p.producto || '-'}</td>
-                <td>${p.cantidad ?? '-'}</td>
-                <td>Q${p.precioUnitario ?? '-'}</td>
-                <td>Q${p.subtotal ?? '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
+          ${(factura.productos || []).map(p => `
+            <tr>
+              <td>${p.producto || '-'}</td>
+              <td>${p.cantidad ?? '-'}</td>
+              <td>Q${p.precioUnitario ?? '-'}</td>
+              <td>Q${p.subtotal ?? '-'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+
         </table>
       `;
       Swal.fire({
         title: `Detalle de productos`,
         html: html,
         width: 600,
-        confirmButtonText: 'Cerrar'
-      });
+        showCancelButton: true,
+        confirmButtonText: '🖨️ Imprimir',
+        cancelButtonText: 'Cerrar'
+      }).then((result) => {
+      if (result.isConfirmed) {
+       mostrarFactura(factura.cliente, factura.nit, factura.productos); 
+
+
+      }
+    });
     });
   });
 }
@@ -344,6 +467,8 @@ function mostrarFacturas(facturas) {
       `;
     });
   }
+
+
 
   function mostrarCompras(compras) {
     const tabla = document.getElementById("tablaCompras").getElementsByTagName('tbody')[0];
@@ -373,6 +498,43 @@ function mostrarFacturas(facturas) {
     });
   }
 
+function mostrarFactura(nombre, nit, productos) {
+  const formatter = new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'GTQ'
+  });
+
+  document.getElementById("facturaClienteNombre").textContent = nombre || "C/F";
+  document.getElementById("facturaClienteNIT").textContent = nit || "C/F";
+  document.getElementById("facturaFecha").textContent = new Date().toLocaleString();
+
+  const tbody = document.getElementById("facturaBody");
+  tbody.innerHTML = "";
+  let total = 0;
+
+  productos.forEach(item => {
+    const subtotal = item.subtotal;
+    total += subtotal;
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${item.producto}</td>
+      <td>${item.cantidad}</td>
+      <td>${formatter.format(item.precioUnitario)}</td>
+      <td>${formatter.format(subtotal)}</td>`;
+    tbody.appendChild(row);
+  });
+
+  document.getElementById("facturaTotal").textContent = formatter.format(total);
+  document.getElementById("factura").style.display = "block";
+
+  // Imprimir luego de mostrar
+  setTimeout(() => {
+    window.print();
+    document.getElementById("factura").style.display = "none";
+  }, 300);
+}
+
+
   // Marcar la opción activa en el sidebar
   const links = document.querySelectorAll('.sidebar a');
   const currentPage = window.location.pathname.split("/").pop();
@@ -380,9 +542,64 @@ function mostrarFacturas(facturas) {
     if (link.getAttribute("href") === currentPage) {
       link.classList.add("active");
     }
+    
   });
-});
+}); 
+
+
+  
 </script>
+<div id="factura" class="factura-container" style="display: none; font-size: 14px;">
+  <div>
+
+    <!-- Encabezado empresa -->
+    <div class="factura-header">
+      <div>
+        <h2 id="empresaNombre" style="margin: 0;">Mi Empresa</h2>
+        <p id="empresaDireccion" style="margin: 2px 0;">Dirección</p>
+        <p style="margin: 2px 0;"><strong>NIT:</strong> <span id="empresaNIT">-</span></p>
+        <p style="margin: 2px 0;"><strong>Tel:</strong> <span id="empresaTelefono">-</span></p>
+      </div>
+    </div>
+
+    <!-- Datos de la factura -->
+    <div style="margin-bottom: 20px;">
+      <h3 style="margin: 0;">Factura</h3>
+      <p style="margin: 2px 0;"><strong>Fecha:</strong> <span id="facturaFecha">--</span></p>
+      <p style="margin: 2px 0;"><strong>Cliente:</strong> <span id="facturaClienteNombre">C/F</span></p>
+      <p style="margin: 2px 0;"><strong>NIT Cliente:</strong> <span id="facturaClienteNIT">C/F</span></p>
+    </div>
+
+    <!-- Tabla de productos -->
+    <table class="factura-tabla">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th style="text-align: right;">Cantidad</th>
+          <th style="text-align: right;">Precio Unitario</th>
+          <th style="text-align: right;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody id="facturaBody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" style="text-align: right;"><strong>Total</strong></td>
+          <td id="facturaTotal" style="text-align: right;">Q0.00</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Mensaje de agradecimiento -->
+    <p class="agradecimiento">Gracias por su preferencia. ¡Vuelva pronto!</p>
+
+    <!-- Botón de impresión -->
+    <div class="factura-botones no-print">
+      <button onclick="window.print()">🖨️ Imprimir factura</button>
+    </div>
+
+  </div>
+</div>
+
 
 </body>
 </html>

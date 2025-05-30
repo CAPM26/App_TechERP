@@ -69,13 +69,13 @@
     <div class="sidebar">
       <h2>Mi ERP</h2>
       <ul>
-        <li><a href="dashboard.html">Inicio</a></li>
-        <li><a href="caja.html">Caja</a></li>
-        <li><a href="compras.html">Compras</a></li>
-        <li><a href="inventario.html">Inventario</a></li>
-        <li><a href="reportes.html">Reportes</a></li>
-        <li><a href="usuarios.html">Usuarios</a></li>
-        <li><a href="infofactura.html" class="active">Config. Factura</a></li>
+        <li><a href="dashboard.html" data-rol="todos">Inicio</a></li>
+        <li><a href="caja.html" data-rol="Administrador,Vendedor">Caja</a></li>
+        <li><a href="compras.html" data-rol="Administrador,Bodega">Compras</a></li>
+        <li><a href="inventario.html" data-rol="Administrador,Bodega">Inventario</a></li>
+        <li><a href="reportes.html" data-rol="Administrador,Bodega">Reportes</a></li>
+        <li><a href="usuarios.html" data-rol="Administrador" class="active">Usuarios</a></li>
+        <li><a href="infofactura.html" data-rol="Administrador">Config. Factura</a></li>
         <li><a href="personas.html" data-rol="Administrador,Vendedor,Bodega">Clientes / Proveedores</a></li>
       </ul>
     </div>
@@ -130,6 +130,20 @@
       document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
       const hoy = new Date();
       document.getElementById("fecha-hoy").textContent = hoy.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      // Filtrar elementos del menú según el rol
+const enlacesSidebar = document.querySelectorAll('.sidebar li');
+enlacesSidebar.forEach(item => {
+  const enlace = item.querySelector('a');
+  const rolesPermitidos = enlace?.getAttribute("data-rol");
+  if (rolesPermitidos && rolesPermitidos !== "todos") {
+    const listaRoles = rolesPermitidos.split(",");
+    if (!listaRoles.includes(rol)) {
+      item.style.display = "none";
+    }
+  }
+});
+
     }
 
     window.cerrarSesion = function () {

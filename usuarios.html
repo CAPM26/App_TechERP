@@ -111,7 +111,11 @@
 } from './firebase.js';
 
 
+
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+
+    import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+
 
   const passwordInput = document.getElementById("password");
   const togglePasswordBtn = document.getElementById("togglePassword");
@@ -366,44 +370,23 @@ document.getElementById("btnRegistrar").addEventListener("click", async () => {
     return;
   }
 
-try {
-  if (idEditando) {
-  await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
-  Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
-} else {
-// Generar ID aleatorio simulado (para Firestore)
-const id = crypto.randomUUID(); // o usa un Date.now() si lo prefieres
-
-await setDoc(doc(db, "usuarios", id), {
-  nombre,
-  correo,
-  telefono,
-  rol,
-  estado,
-  password // Puedes almacenarla por ahora si quieres mostrarla, pero no es seguro
-});
-
-
-
-
-}
-
-
-  obtenerUsuarios();
-  document.getElementById("nombre").value = "";
-  document.getElementById("email").value = "";
-  document.getElementById("telefono").value = "";
-  document.getElementById("password").value = "";
-  document.getElementById("confirmPassword").value = "";
-  document.getElementById("rol").value = "";
-  document.getElementById("estado").value = "";
-  document.getElementById("btnRegistrar").textContent = "Guardar Usuario";
-  idEditando = null;
-
-} catch (error) {
-  console.error("Error al guardar usuario:", error);
-  Swal.fire('¡Error!', 'No se pudo guardar el usuario.', 'error');
-}
+ try {
+    if (idEditando) {
+      await setDoc(doc(db, "usuarios", idEditando), { nombre, correo, telefono, rol, estado });
+      Swal.fire('¡Actualizado!', 'El usuario ha sido actualizado.', 'success');
+      obtenerUsuarios();
+    } else {
+      localStorage.setItem('adminEmail', auth.currentUser?.email || '');
+    
+      localStorage.setItem('nuevoUsuario', JSON.stringify({
+        nombre, correo, telefono, password, rol, estado
+      }));
+      window.location.href = "cargando.html";
+    }
+  } catch (error) {
+    console.error("Error al guardar usuario:", error);
+    Swal.fire('¡Error!', 'No se pudo guardar el usuario.', 'error');
+  }
 });
   </script>
 </body>

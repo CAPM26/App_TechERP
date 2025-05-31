@@ -167,7 +167,7 @@
     </div>
   </div>
 
-  <script type="module"   src="session.js">
+  <script type="module">
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
@@ -201,70 +201,6 @@ Promise.all([
     const data = doc.data();
     totalCompras += parseFloat(data.total || 0);
   });
-
-  async function validarSesion() {
-  const uidLocal = localStorage.getItem("uid");
-  const nombreLocal = localStorage.getItem("usuario");
-  const rolLocal = localStorage.getItem("rol");
-
-  if (uidLocal && nombreLocal && rolLocal) {
-    mostrarDatosUsuario(nombreLocal, rolLocal);
-    mostrarOpcionesPermitidas(rolLocal);
-    return;
-  }
-
-  // Si no hay sesión local, validar con Firebase Auth
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "index.html";
-      return;
-    }
-
-    const ref = doc(db, "usuarios", user.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      window.location.href = "index.html";
-      return;
-    }
-
-    const data = snap.data();
-    const nombre = data.nombre || "Usuario";
-    const rol = data.rol || "";
-
-    mostrarDatosUsuario(nombre, rol);
-    mostrarOpcionesPermitidas(rol);
-  });
-}
-
-function mostrarDatosUsuario(nombre, rol) {
-  document.getElementById("usuario-logueado").textContent = `Bienvenido, ${nombre}`;
-  document.getElementById("rol-logueado").textContent = `Rol: ${rol}`;
-  document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}
-
-function mostrarOpcionesPermitidas(rolUsuario) {
-  const links = document.querySelectorAll('.sidebar a');
-  links.forEach(link => {
-    const rolesPermitidos = link.getAttribute('data-rol');
-    if (!rolesPermitidos || rolesPermitidos === "todos") return;
-    const listaRoles = rolesPermitidos.split(',').map(r => r.trim().toLowerCase());
-    if (!listaRoles.includes(rolUsuario.toLowerCase())) {
-      link.parentElement.style.display = "none";
-    }
-  });
-}
-
-window.cerrarSesion = function () {
-  localStorage.clear();
-  window.location.href = "index.html";
-};
-
-// Llamar a la función para validar
-validarSesion();
 
   let totalVentas = 0;
   ventasSnap.forEach(doc => {

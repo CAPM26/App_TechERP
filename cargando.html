@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Creando usuario...</title>
+  <style>
+    body { display: flex; align-items: center; justify-content: center; height: 100vh; background: #222; color: #fff; }
+    .loader { border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px;}
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .msg { text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="msg">
+    <div class="loader" id="loader"></div>
+    <h2 id="mensaje">Creando usuario, por favor espera...</h2>
+  </div>
+  <script type="module">
+    import { auth, db, setDoc, doc } from './firebase.js';
+    import { createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+
+    async function crearUsuario() {
+      const datos = JSON.parse(localStorage.getItem('nuevoUsuario') || '{}');
+      if (!datos || !datos.correo || !datos.password) {
+        window.location.href = "index.html";
+        return;
+      }
+      try {
+        // 1. Crear usuario en Authentication (esto cambia la sesión)
+        const userCredential = await createUserWithEmailAndPassword(auth, datos.correo, datos.password);
+        const newUser = userCredential.user;
+
+        // 2. Guardar datos adicionales en Firestore
+        await setDoc(doc(db, "usuarios", newUser.uid), {
+          nombre: datos.nombre,
+          correo: datos.correo,
+          telefono: datos.telefono,
+          rol: datos.rol,
+          estado: datos.estado
+        });
+
+        // 3. Limpiar datos temporales
+        localStorage.removeItem('nuevoUsuario');
+
+        // 4. Mostrar mensaje de éxito y esperar 5 segundos antes de cerrar sesión
+        document.getElementById('mensaje').textContent = "Usuario creado correctamente, cerrando sesión...";
+        document.getElementById('loader').style.display = "none";
+        setTimeout(async () => {
+          await signOut(auth);
+          window.location.href = "index.html";
+        }, 3000);
+      } catch (error) {
+        alert("Error al crear usuario: " + (error.code || error.message));
+        window.location.href = "index.html";
+      }
+    }
+
+    crearUsuario();
+  </script>
+</body>
+</html>
